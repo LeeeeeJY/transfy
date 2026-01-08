@@ -31,13 +31,13 @@ export default function PlayerControls() {
         </div>
 
         {/* Controls (Bottom line on mobile, Right on desktop) */}
-        <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-4 shrink-0">
+        <div className="flex items-center justify-end w-full md:w-auto gap-2 md:gap-4 shrink-0">
 
           {/* Language Selector */}
-          <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1.5 flex-1 md:flex-none justify-center">
+          <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1.5">
             <Globe className="w-4 h-4 text-zinc-500" />
             <select
-              className="bg-transparent text-sm focus:outline-none dark:text-zinc-300 w-full md:w-auto"
+              className="bg-transparent text-sm focus:outline-none dark:text-zinc-300 w-auto"
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
             >
