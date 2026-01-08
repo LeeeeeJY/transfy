@@ -87,14 +87,45 @@ export function useSpotifyPoller() {
       if (store.showTranslation) {
         const cachedData = await getCachedLyrics(trackId, store.targetLanguage);
 
+        const ua =
+          typeof window !== "undefined"
+            ? window.navigator.userAgent || "unknown"
+            : "unknown";
+        const ref =
+          typeof document !== "undefined"
+            ? document.referrer || "unknown"
+            : "unknown";
+        const isMobile = /mobile|android|iphone|ipad/i.test(
+          ua.toLowerCase()
+        );
+        const clientInfo = {
+          user_agent: ua,
+          referer: ref,
+          device_type: isMobile ? "mobile" : "desktop",
+        };
+
         if (cachedData) {
           console.log("Using cached lyrics (Supabase Poller) for:", trackId);
           setLyrics(cachedData);
+
+          // Log Activity (Cache Hit)
+          await logActivity("translate_real", {
+            user_email: session?.user?.email || "anonymous",
+            track_name: title,
+            artist,
+            target_lang: store.targetLanguage,
+            is_cached: true,
+            country_code: store.countryCode,
+            ...clientInfo,
+          });
         } else {
           const textsToTranslate = linesWithId.map((l) => l.text);
           try {
             // Batch translate
-            const translations = await translateText(textsToTranslate, store.targetLanguage);
+            const translations = await translateText(
+              textsToTranslate,
+              store.targetLanguage
+            );
 
             const finalLyrics = linesWithId.map((line, i) => ({
               ...line,
@@ -105,12 +136,15 @@ export function useSpotifyPoller() {
             // Save to Cache
             await saveCachedLyrics(trackId, store.targetLanguage, finalLyrics);
 
-            // Log Activity
+            // Log Activity (API Call)
             await logActivity("translate_real", {
               user_email: session?.user?.email || "anonymous",
               track_name: title,
-              artist: artist,
+              artist,
               target_lang: store.targetLanguage,
+              is_cached: false,
+              country_code: store.countryCode,
+              ...clientInfo,
             });
           } catch (e) {
             console.error("Translation failed", e);

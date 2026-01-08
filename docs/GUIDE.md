@@ -1,4 +1,4 @@
-# Lyricfy 실행 가이드 (User Guide)
+# transfy 실행 가이드 (User Guide)
 
 ## 1. 필수 요구 사항 (Prerequisites)
 - **Node.js:** v18 이상 (LTS 권장)
@@ -42,7 +42,7 @@ npm run dev
 
 1. **로그인:** 메인 화면에서 "Spotify로 로그인" 버튼을 클릭합니다.
 2. **음악 재생:** 별도의 기기(PC 앱, 모바일 앱)에서 Spotify로 음악을 재생합니다.
-3. **가사 확인:** Lyricfy 웹앱이 자동으로 재생 중인 곡을 감지하고 가사를 보여줍니다.
+3. **가사 확인:** transfy 웹앱이 자동으로 재생 중인 곡을 감지하고 가사를 보여줍니다.
 4. **번역 설정:** 하단 컨트롤 바에서 지구본 아이콘 옆의 언어를 변경하거나, 번역 아이콘을 눌러 번역을 끄고 켤 수 있습니다.
 
 ## 5. 배포 가이드 (Deployment)
@@ -52,9 +52,9 @@ npm run dev
 1. GitHub에 코드를 푸시합니다.
 2. Vercel 대시보드에서 `New Project`를 클릭하고 리포지토리를 연결합니다.
 3. **Environment Variables** 설정 단계에서 `.env.local`에 있던 모든 변수를 입력합니다.
-   - 주의: `NEXTAUTH_URL`은 배포된 도메인 주소(예: `https://lyricfy.vercel.app`)로 변경해야 합니다.
+   - 주의: `NEXTAUTH_URL`은 배포된 도메인 주소(예: `https://transfy-wine.vercel.app`)로 변경해야 합니다.
 4. **Deploy** 버튼을 누릅니다.
-5. 배포 완료 후, Spotify 대시보드와 Google Console에서 Redirect URI를 배포된 도메인(`https://lyricfy.vercel.app/api/auth/callback/spotify`)으로 업데이트해야 로그인이 정상 작동합니다.
+5. 배포 완료 후, Spotify 대시보드와 Google Console에서 Redirect URI를 배포된 도메인(`https://transfy-wine.vercel.app/api/auth/callback/spotify`)으로 업데이트해야 로그인이 정상 작동합니다.
 
 ## 6. 트러블슈팅 (Troubleshooting)
 

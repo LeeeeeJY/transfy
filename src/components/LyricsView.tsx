@@ -82,8 +82,33 @@ export default function LyricsView() {
     setLyrics,
     setPlayback,
     updateProgress,
-    targetLanguage
+    targetLanguage,
+    countryCode,
   } = usePlayerStore();
+
+  // Get current track info from store for logging
+  const { title, artist } = usePlayerStore.getState();
+
+  // Client info for logging
+  const getClientLogInfo = () => {
+    if (typeof window === "undefined") {
+      return {
+        user_agent: "unknown",
+        referer: "unknown",
+        device_type: "unknown",
+      };
+    }
+
+    const ua = window.navigator.userAgent || "unknown";
+    const ref = document.referrer || "unknown";
+    const isMobile = /mobile|android|iphone|ipad/i.test(ua.toLowerCase());
+
+    return {
+      user_agent: ua,
+      referer: ref,
+      device_type: isMobile ? "mobile" : "desktop",
+    };
+  };
 
   // Get current language text (fallback to English if not found)
   const t = UI_TEXT[targetLanguage as keyof typeof UI_TEXT] || UI_TEXT.en;
@@ -150,29 +175,52 @@ export default function LyricsView() {
       // Try DB Cache First
       const cachedData = await getCachedLyrics(trackInfo.trackId, targetLanguage);
 
+      const clientInfo = getClientLogInfo();
+
       if (cachedData) {
         console.log("Using cached lyrics (Supabase) for:", trackInfo.trackId);
         setLyrics(cachedData);
-      } else {
-        console.log("Translating lyrics (Supabase) for:", trackInfo.trackId);
-        const textsToTranslate = lyricsData.map(l => l.text);
-        const translatedTexts = await translateText(textsToTranslate, targetLanguage);
 
-        const translatedLyrics = lyricsData.map((line, index) => ({
-          ...line,
-          translation: translatedTexts[index]
-        }));
-
-        setLyrics(translatedLyrics);
-        // Save to DB
-        await saveCachedLyrics(trackInfo.trackId, targetLanguage, translatedLyrics);
-
-        // Log Activity
+        // Log Activity (Cache Hit)
         await logActivity("translate_test", {
           track_name: trackInfo.title,
           artist: trackInfo.artist,
           target_lang: targetLanguage,
-          user_email: "test_user"
+          user_email: "test_user",
+          is_cached: true,
+          country_code: countryCode,
+          ...clientInfo,
+        });
+      } else {
+        console.log("Translating lyrics (Supabase) for:", trackInfo.trackId);
+        const textsToTranslate = lyricsData.map((l) => l.text);
+        const translatedTexts = await translateText(
+          textsToTranslate,
+          targetLanguage
+        );
+
+        const translatedLyrics = lyricsData.map((line, index) => ({
+          ...line,
+          translation: translatedTexts[index],
+        }));
+
+        setLyrics(translatedLyrics);
+        // Save to DB
+        await saveCachedLyrics(
+          trackInfo.trackId,
+          targetLanguage,
+          translatedLyrics
+        );
+
+        // Log Activity (API Call)
+        await logActivity("translate_test", {
+          track_name: trackInfo.title,
+          artist: trackInfo.artist,
+          target_lang: targetLanguage,
+          user_email: "test_user",
+          is_cached: false,
+          country_code: countryCode,
+          ...clientInfo,
         });
       }
     } catch (error) {
@@ -186,31 +234,53 @@ export default function LyricsView() {
 
     const translateCurrentLyrics = async () => {
       try {
-        const cachedData = await getCachedLyrics(currentTrackId, targetLanguage);
+        const cachedData = await getCachedLyrics(
+          currentTrackId,
+          targetLanguage
+        );
+        const clientInfo = getClientLogInfo();
 
         if (cachedData) {
           console.log("Using cached lyrics (lang switch) for:", currentTrackId);
           setLyrics(cachedData);
+
+          // Log Activity (Lang Switch - Cache Hit)
+          await logActivity("translate_switch", {
+            track_name: title || "Unknown (Test)",
+            artist,
+            target_lang: targetLanguage,
+            user_email: "test_user",
+            is_cached: true,
+            country_code: countryCode,
+            ...clientInfo,
+          });
           return;
         }
 
         console.log("Translating lyrics (lang switch) for:", currentTrackId);
-        const textsToTranslate = lyrics.map(l => l.text);
-        const translatedTexts = await translateText(textsToTranslate, targetLanguage);
+        const textsToTranslate = lyrics.map((l) => l.text);
+        const translatedTexts = await translateText(
+          textsToTranslate,
+          targetLanguage
+        );
 
         const newLyrics = lyrics.map((line, index) => ({
           ...line,
-          translation: translatedTexts[index]
+          translation: translatedTexts[index],
         }));
 
         setLyrics(newLyrics);
         await saveCachedLyrics(currentTrackId, targetLanguage, newLyrics);
 
-        // Log Activity (Lang Switch)
+        // Log Activity (Lang Switch - API Call)
         await logActivity("translate_switch", {
-          track_name: "Unknown (Test)",
+          track_name: title || "Unknown (Test)",
+          artist,
           target_lang: targetLanguage,
-          user_email: "test_user"
+          user_email: "test_user",
+          is_cached: false,
+          country_code: countryCode,
+          ...clientInfo,
         });
       } catch (error) {
         console.error("Re-translation failed", error);
