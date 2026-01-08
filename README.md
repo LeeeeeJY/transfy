@@ -1,4 +1,4 @@
-# transfy 🎵
+# Transfy 🎵
 
 > Real-time Spotify Lyrics with Translation
 > 

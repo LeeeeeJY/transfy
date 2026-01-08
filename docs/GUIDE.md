@@ -1,4 +1,4 @@
-# transfy 실행 가이드 (User Guide)
+# Transfy 실행 가이드 (User Guide)
 
 ## 1. 필수 요구 사항 (Prerequisites)
 - **Node.js:** v18 이상 (LTS 권장)
