@@ -111,28 +111,34 @@ export default function ClientHome({ initialLang, initialCountry }: ClientHomePr
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-black text-black dark:text-white overflow-hidden">
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-hidden flex flex-col">
-        {/* Lyrics Area */}
-        <LyricsView />
-
-        {/* Floating Ad or Fixed Ad */}
-        <div className="fixed top-4 right-4 z-40 hidden xl:block w-[300px]">
-          {/* Desktop Sidebar Ad Placeholder */}
-          <div className="bg-zinc-100 dark:bg-zinc-800 text-xs p-2 text-center rounded">
-            {t.adDesktop}
-          </div>
+    <div className="flex flex-col h-[100dvh] bg-white dark:bg-black text-black dark:text-white overflow-hidden">
+      {/* Main Content Area - Grow to fill space */}
+      <main className="flex-1 relative overflow-hidden w-full">
+        {/* Lyrics Area - Handles its own scroll */}
+        <div className="absolute inset-0">
+          <LyricsView />
         </div>
       </main>
 
-      {/* Controls */}
-      <PlayerControls />
-
-      {/* Bottom Ad (Visible mostly on mobile above controls) */}
-      <div className="mb-[80px] shrink-0">
-        <AdSense />
+      {/* Floating Sidebar Ad - Fixed position, out of flow */}
+      <div className="fixed top-20 right-4 z-40 hidden xl:block w-[300px] pointer-events-none">
+        {/* Pointer events auto for ad itself */}
+        <div className="pointer-events-auto">
+          <AdSense
+            className="w-full rounded-lg shadow-sm"
+            style={{ width: '300px', height: '600px' }}
+            format="vertical"
+          />
+        </div>
       </div>
+
+      {/* Bottom Ad Area - Fixed height to prevent layout shift */}
+      <div className="shrink-0 w-full z-10 bg-white dark:bg-black pb-[80px]">
+        <AdSense style={{ minHeight: '90px' }} />
+      </div>
+
+      {/* Controls - Fixed at bottom */}
+      <PlayerControls />
     </div>
   );
 }
