@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     description: "지금 듣고 있는 노래의 가사를 실시간으로 번역해서 확인하세요.",
   },
   verification: {
-    google: "구글_서치콘솔_인증코드를_여기에_입력하세요",
+    google: "0PWBWB6ToMEJhAMptckEcI75i3GES3M_wJlRAwnCdYE",
     other: {
       "naver-site-verification": "네이버_웹마스터도구_인증코드를_여기에_입력하세요",
     },
