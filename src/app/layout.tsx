@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -14,11 +14,68 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
-  title: "Transfy - Realtime Spotify Lyrics",
-  description: "Sync your Spotify lyrics with real-time translation.",
-  icons: {
-    icon: "/favicon.ico",
+  metadataBase: new URL("https://transfy-wine.vercel.app"),
+  title: {
+    default: "Transfy - Spotify Lyrics Translator",
+    template: "%s | Transfy",
+  },
+  description: "스포티파이 노래 가사를 실시간으로 동기화하여 한국어, 영어, 일본어, 중국어로 번역해주는 서비스입니다. 가사 해석과 함께 음악을 즐겨보세요.",
+  keywords: [
+    "스포티파이",
+    "가사 번역",
+    "실시간 가사",
+    "Spotify Lyrics",
+    "팝송 번역",
+    "J-POP 번역",
+    "Transfy",
+    "트랜스파이",
+    "노래방 가사",
+  ],
+  authors: [{ name: "Transfy" }],
+  creator: "Transfy Team",
+  publisher: "Transfy",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    title: "Transfy - 스포티파이 실시간 가사 번역",
+    description: "지금 듣고 있는 노래의 가사를 실시간으로 번역해서 확인하세요.",
+    url: "https://transfy-wine.vercel.app",
+    siteName: "Transfy",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Transfy - 스포티파이 실시간 가사 번역",
+    description: "지금 듣고 있는 노래의 가사를 실시간으로 번역해서 확인하세요.",
+  },
+  verification: {
+    google: "구글_서치콘솔_인증코드를_여기에_입력하세요",
+    other: {
+      "naver-site-verification": "네이버_웹마스터도구_인증코드를_여기에_입력하세요",
+    },
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
@@ -32,6 +89,25 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Transfy",
+              "url": "https://transfy-wine.vercel.app",
+              "description": "Real-time Spotify lyrics translation service",
+              "applicationCategory": "MultimediaApplication",
+              "operatingSystem": "Any",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              }
+            }),
+          }}
+        />
         {adSenseId && (
           <Script
             async

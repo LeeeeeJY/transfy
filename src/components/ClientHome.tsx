@@ -16,6 +16,7 @@ const UI_TEXT = {
     guestMode: "로그인 없이 체험하기",
     permissionNotice: "로그인하면 스포티파이 재생 정보를 읽어올 수 있는 권한을 요청합니다.",
     adDesktop: "광고 영역 (데스크탑)",
+    titleDefault: "Transfy - 스포티파이 가사 번역기",
   },
   en: {
     subtitle: "Realtime Spotify lyrics translation service",
@@ -23,6 +24,7 @@ const UI_TEXT = {
     guestMode: "Try without logging in",
     permissionNotice: "When you sign in, we request permission to read your Spotify playback information.",
     adDesktop: "Ad space (desktop)",
+    titleDefault: "Transfy - Spotify Lyrics Translator",
   },
   ja: {
     subtitle: "Spotifyリアルタイム歌詞翻訳サービス",
@@ -30,6 +32,7 @@ const UI_TEXT = {
     guestMode: "ログインせずに試す",
     permissionNotice: "ログインすると、Spotifyの再生情報を読み取る権限をリクエストします。",
     adDesktop: "広告エリア（デスクトップ）",
+    titleDefault: "Transfy - Spotify 歌詞翻訳",
   },
   zh: {
     subtitle: "Spotify 实时歌词翻译服务",
@@ -37,15 +40,17 @@ const UI_TEXT = {
     guestMode: "无需登录体验",
     permissionNotice: "登录后，我们会请求读取您的 Spotify 播放信息的权限。",
     adDesktop: "广告区域（桌面端）",
+    titleDefault: "Transfy - Spotify 歌词翻译",
   },
 } as const;
 
 interface ClientHomeProps {
   initialLang: "ko" | "en" | "ja" | "zh";
   initialCountry: string;
+  initialIp: string;
 }
 
-export default function ClientHome({ initialLang, initialCountry }: ClientHomeProps) {
+export default function ClientHome({ initialLang, initialCountry, initialIp }: ClientHomeProps) {
   const { data: session } = useSession();
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -55,31 +60,54 @@ export default function ClientHome({ initialLang, initialCountry }: ClientHomePr
   if (!initialized.current) {
     usePlayerStore.setState({
       targetLanguage: initialLang,
-      countryCode: initialCountry
+      uiLanguage: initialLang, // Set UI language
+      countryCode: initialCountry,
+      clientIp: initialIp
     });
     initialized.current = true;
   }
 
   const { targetLanguage } = usePlayerStore();
 
+  // CRITICAL: During SSR/Hydration, we MUST use initialLang to match server HTML.
+  // We now use initialLang ALWAYS for UI text, so changing translation language doesn't change app UI.
+  const uiLang = initialLang;
+
+  const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
+
   // Initialize Poller (only active when logged in)
   useSpotifyPoller();
+
+  const { title, artist, isPlaying } = usePlayerStore();
+
+  // Dynamic Title Update
+  useEffect(() => {
+    if ((session || isGuestMode) && isPlaying && title && artist) {
+      document.title = `${title} - ${artist} | Transfy`;
+    } else {
+      document.title = t.titleDefault;
+    }
+  }, [session, isGuestMode, isPlaying, title, artist, t.titleDefault]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // CRITICAL: During SSR/Hydration, we MUST use initialLang to match server HTML.
-  // Using targetLanguage from store directly might cause mismatches if store isn't synced yet.
-  const currentLang = mounted ? targetLanguage : initialLang;
-
-  const t = UI_TEXT[currentLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   if (!session && !isGuestMode) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-br from-green-500 to-black text-white">
         <div className="max-w-md w-full text-center space-y-8">
           <div>
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.svg"
+                alt="Transfy Logo"
+                className="w-24 h-24 shadow-2xl rounded-full hover:scale-110 transition-transform duration-300"
+              />
+            </div>
+
             <h1 className="text-5xl font-bold tracking-tight mb-2">Transfy</h1>
             <p className="text-lg opacity-80">{t.subtitle}</p>
           </div>
@@ -138,7 +166,20 @@ export default function ClientHome({ initialLang, initialCountry }: ClientHomePr
       </div>
 
       {/* Controls - Fixed at bottom */}
-      <PlayerControls />
+      <PlayerControls 
+        onLogout={isGuestMode ? () => {
+          setIsGuestMode(false);
+          // Reset player state completely
+          usePlayerStore.setState({ 
+            isPlaying: false, 
+            title: "", 
+            artist: "", 
+            trackId: null,
+            lyrics: [], // Clear lyrics to show selection screen again
+            progressMs: 0
+          }); 
+        } : undefined} 
+      />
     </div>
   );
 }

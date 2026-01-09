@@ -4,7 +4,11 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { Globe, Languages, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 
-export default function PlayerControls() {
+interface PlayerControlsProps {
+  onLogout?: () => void;
+}
+
+export default function PlayerControls({ onLogout }: PlayerControlsProps) {
   const {
     showTranslation,
     toggleTranslation,
@@ -14,6 +18,14 @@ export default function PlayerControls() {
     artist,
     albumArt
   } = usePlayerStore();
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      signOut({ callbackUrl: "/" });
+    }
+  };
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 p-3 md:p-4 z-50">
@@ -61,9 +73,9 @@ export default function PlayerControls() {
             </button>
 
             <button
-              onClick={() => signOut()}
+              onClick={handleLogout}
               className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 transition-colors"
-              title="로그아웃"
+              title="Log out"
             >
               <LogOut className="w-5 h-5" />
             </button>

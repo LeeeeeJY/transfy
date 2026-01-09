@@ -4,9 +4,8 @@ export async function getLanguageFromHeaders(): Promise<"ko" | "en" | "ja" | "zh
   const headersList = await headers();
   const acceptLanguage = headersList.get("accept-language");
 
-  if (!acceptLanguage) return "ko"; // Default fallback
+  if (!acceptLanguage) return "ko"; // Default fallback to Korean
 
-  // Parse first language from Accept-Language header (e.g., "en-US,en;q=0.9,ko;q=0.8")
   const primaryLang = acceptLanguage.split(",")[0].trim().toLowerCase();
 
   if (primaryLang.startsWith("ko")) return "ko";
@@ -19,7 +18,20 @@ export async function getLanguageFromHeaders(): Promise<"ko" | "en" | "ja" | "zh
 
 export async function getCountryFromHeaders(): Promise<string> {
   const headersList = await headers();
-  // Vercel provided header
   const country = headersList.get("x-vercel-ip-country");
   return country || "Unknown";
+}
+
+export async function getClientIp(): Promise<string> {
+  const headersList = await headers();
+  const forwardedFor = headersList.get("x-forwarded-for");
+  const realIp = headersList.get("x-real-ip");
+
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
+  }
+  if (realIp) {
+    return realIp;
+  }
+  return "Unknown";
 }

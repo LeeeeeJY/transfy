@@ -36,8 +36,10 @@ interface PlayerState {
 
   // Settings
   showTranslation: boolean;
-  targetLanguage: string;
+  targetLanguage: string; // Translation Target Language
+  uiLanguage: string; // UI Interface Language
   countryCode: string; // User's country code (e.g., KR, US)
+  clientIp: string; // User's IP address
 
   // Actions
   setPlayback: (state: Partial<PlayerState>) => void;
@@ -46,7 +48,9 @@ interface PlayerState {
   updateProgress: (ms: number) => void;
   toggleTranslation: () => void;
   setTargetLanguage: (lang: string) => void;
+  setUiLanguage: (lang: string) => void;
   setCountryCode: (code: string) => void;
+  setClientIp: (ip: string) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -63,8 +67,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isLoadingLyrics: false,
 
   showTranslation: true,
-  targetLanguage: getBrowserLanguage(), // Detect browser language on initialization
+  targetLanguage: getBrowserLanguage(),
+  uiLanguage: getBrowserLanguage(), // Initialize same as browser
   countryCode: "Unknown",
+  clientIp: "Unknown",
 
   setPlayback: (state) => set((prev) => ({ ...prev, ...state, lastUpdated: Date.now() })),
   setLyrics: (lyrics) => set({ lyrics }),
@@ -72,5 +78,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   updateProgress: (ms) => set({ progressMs: ms, lastUpdated: Date.now() }),
   toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
   setTargetLanguage: (lang) => set({ targetLanguage: lang }),
+  setUiLanguage: (lang) => set({ uiLanguage: lang }),
   setCountryCode: (code) => set({ countryCode: code }),
+  setClientIp: (ip) => set({ clientIp: ip }),
 }));

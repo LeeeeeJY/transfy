@@ -102,6 +102,7 @@ export function useSpotifyPoller() {
           user_agent: ua,
           referer: ref,
           device_type: isMobile ? "mobile" : "desktop",
+          ip_address: store.clientIp, // Use IP from store
         };
 
         if (cachedData) {

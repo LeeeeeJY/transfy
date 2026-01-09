@@ -83,7 +83,9 @@ export default function LyricsView() {
     setPlayback,
     updateProgress,
     targetLanguage,
+    uiLanguage, // Add uiLanguage
     countryCode,
+    clientIp,
   } = usePlayerStore();
 
   // Get current track info from store for logging
@@ -107,20 +109,30 @@ export default function LyricsView() {
       user_agent: ua,
       referer: ref,
       device_type: isMobile ? "mobile" : "desktop",
+      ip_address: clientIp, // Use IP from store
     };
   };
 
   // Get current language text (fallback to English if not found)
-  const t = UI_TEXT[targetLanguage as keyof typeof UI_TEXT] || UI_TEXT.en;
+  const t = UI_TEXT[uiLanguage as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Added timer ref
   const [isTestRunning, setIsTestRunning] = useState(false);
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null); // Track ID for caching context
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   // Test Mode Handler
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleTestMode = async (song: "eminem" | "yoasobi") => {
+    if (timerRef.current) clearInterval(timerRef.current); // Clear existing timer
     setIsTestRunning(true);
 
     let trackInfo;
@@ -160,12 +172,12 @@ export default function LyricsView() {
 
     // 3. Start Timer (Simulate playback)
     const startTime = Date.now();
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
       updateProgress(elapsed);
 
       if (elapsed > 30000) {
-        clearInterval(timer);
+        if (timerRef.current) clearInterval(timerRef.current);
         setIsTestRunning(false);
       }
     }, 100); // Update every 100ms

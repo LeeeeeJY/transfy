@@ -80,6 +80,7 @@ interface LogActivityData {
   referer?: string;
   device_type?: string;
   country_code?: string;
+  ip_address?: string;
 }
 
 export async function logActivity(action: string, data: LogActivityData) {
@@ -95,6 +96,7 @@ export async function logActivity(action: string, data: LogActivityData) {
       referer: data.referer,
       device_type: data.device_type,
       country_code: data.country_code,
+      ip_address: data.ip_address,
       created_at: getKSTTimestamp(),
     });
 
