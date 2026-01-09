@@ -116,6 +116,11 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         )}
+        <Script
+          src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}

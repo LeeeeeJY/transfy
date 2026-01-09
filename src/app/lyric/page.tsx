@@ -1,8 +1,13 @@
 import ClientHome from "@/components/ClientHome";
 import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
+import { Metadata } from "next";
 
-export default async function Home() {
-  // Detect language, country, and IP on server side
+export const metadata: Metadata = {
+  title: "Song Lyrics | Transfy",
+  description: "Real-time lyrics translation for Spotify and Apple Music.",
+};
+
+export default async function LyricRootPage() {
   const lang = await getLanguageFromHeaders();
   const country = await getCountryFromHeaders();
   const ip = await getClientIp();
@@ -12,7 +17,7 @@ export default async function Home() {
       initialLang={lang}
       initialCountry={country}
       initialIp={ip}
-      isLyricPageInitial={false}
+      isLyricPageInitial={true}
     />
   );
 }

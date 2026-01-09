@@ -4,19 +4,40 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
 import { translateText } from "@/app/actions/translate";
 import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
+import { useRouter } from "next/navigation";
 
 // Dummy Data (Eminem - Lose Yourself)
 const DUMMY_LYRICS_EMINEM: LyricsLine[] = [
-  { id: "1", time: 1000, text: "Look, if you had one shot, or one opportunity" },
+  {
+    id: "1",
+    time: 1000,
+    text: "Look, if you had one shot, or one opportunity",
+  },
   { id: "2", time: 5000, text: "To seize everything you ever wanted" },
   { id: "3", time: 8000, text: "In one moment" },
   { id: "4", time: 10000, text: "Would you capture it or just let it slip?" },
   { id: "5", time: 13000, text: "Yo" },
-  { id: "6", time: 15000, text: "His palms are sweaty, knees weak, arms are heavy" },
-  { id: "7", time: 18000, text: "There's vomit on his sweater already, mom's spaghetti" },
-  { id: "8", time: 21000, text: "He's nervous, but on the surface he looks calm and ready" },
+  {
+    id: "6",
+    time: 15000,
+    text: "His palms are sweaty, knees weak, arms are heavy",
+  },
+  {
+    id: "7",
+    time: 18000,
+    text: "There's vomit on his sweater already, mom's spaghetti",
+  },
+  {
+    id: "8",
+    time: 21000,
+    text: "He's nervous, but on the surface he looks calm and ready",
+  },
   { id: "9", time: 24000, text: "To drop bombs, but he keeps on forgettin'" },
-  { id: "10", time: 27000, text: "What he wrote down, the whole crowd goes so loud" },
+  {
+    id: "10",
+    time: 27000,
+    text: "What he wrote down, the whole crowd goes so loud",
+  },
 ];
 
 // Dummy Data 2 (YOASOBI - Idol)
@@ -39,41 +60,47 @@ const UI_TEXT = {
   ko: {
     loading: "가사를 불러오는 중...",
     noLyrics: "가사를 찾을 수 없습니다.",
-    playMusic: "스포티파이에서 음악을 재생해주세요.",
+    playMusic: "음악을 재생해주세요.",
     testRunning: "테스트 실행 중...",
     runTestEminem: "🎵 에미넴(Lose Yourself) 실행",
-    runTestYoasobi: "🎵 YOASOBI(Idol) 실행"
+    runTestYoasobi: "🎵 YOASOBI(Idol) 실행",
   },
   en: {
     loading: "Loading lyrics...",
     noLyrics: "No lyrics found.",
-    playMusic: "Please play music on Spotify.",
+    playMusic: "Please play music.",
     testRunning: "Running test...",
     runTestEminem: "🎵 Run Test (Eminem)",
-    runTestYoasobi: "🎵 Run Test (YOASOBI)"
+    runTestYoasobi: "🎵 Run Test (YOASOBI)",
   },
   ja: {
     loading: "歌詞を読み込み中...",
     noLyrics: "歌詞が見つかりません。",
-    playMusic: "Spotifyで音楽を再生してください。",
+    playMusic: "音楽を再生してください。",
     testRunning: "テスト実行中...",
     runTestEminem: "🎵 テスト実行 (Eminem)",
-    runTestYoasobi: "🎵 テスト実行 (YOASOBI)"
+    runTestYoasobi: "🎵 テスト実行 (YOASOBI)",
   },
   zh: {
     loading: "正在加载歌词...",
     noLyrics: "未找到歌词。",
-    playMusic: "请在 Spotify 上播放音乐。",
+    playMusic: "请播放音乐。",
     testRunning: "测试运行中...",
     runTestEminem: "🎵 运行测试 (Eminem)",
-    runTestYoasobi: "🎵 运行测试 (YOASOBI)"
-  }
+    runTestYoasobi: "🎵 运行测试 (YOASOBI)",
+  },
 };
 
-// Helper for caching
-const getCacheKey = (trackId: string, lang: string) => `transfy-lyrics-${trackId}-${lang}`;
+interface LyricsViewProps {
+  initialUiLanguage?: string;
+  isDummyTrack?: boolean;
+}
 
-export default function LyricsView() {
+export default function LyricsView({
+  initialUiLanguage,
+  isDummyTrack,
+}: LyricsViewProps) {
+  const router = useRouter(); // Initialize router
   const {
     lyrics,
     progressMs,
@@ -87,6 +114,10 @@ export default function LyricsView() {
     countryCode,
     clientIp,
   } = usePlayerStore();
+
+  // Use initialUiLanguage for the first render to match server
+  // Then fallback to store value (which syncs with client preference)
+  const currentUiLang = initialUiLanguage || uiLanguage;
 
   // Get current track info from store for logging
   const { title, artist } = usePlayerStore.getState();
@@ -113,8 +144,11 @@ export default function LyricsView() {
     };
   };
 
-  // Get current language text (fallback to English if not found)
-  const t = UI_TEXT[uiLanguage as keyof typeof UI_TEXT] || UI_TEXT.en;
+  // ...
+
+  // Get current language text
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = UI_TEXT[currentUiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -129,8 +163,21 @@ export default function LyricsView() {
     };
   }, []);
 
+  // Auto-start test mode based on URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      // Allow restart even if lyrics exist, if it's a dummy URL and not currently running
+      if (path.includes("dummy-eminem") && !isTestRunning) {
+        handleTestMode("eminem");
+      } else if (path.includes("dummy-yoasobi") && !isTestRunning) {
+        handleTestMode("yoasobi");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
   // Test Mode Handler
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleTestMode = async (song: "eminem" | "yoasobi") => {
     if (timerRef.current) clearInterval(timerRef.current); // Clear existing timer
     setIsTestRunning(true);
@@ -144,9 +191,11 @@ export default function LyricsView() {
         trackId: "dummy-eminem",
         title: "Lose Yourself",
         artist: "Eminem",
-        albumArt: "https://i.scdn.co/image/ab67616d0000b2736ca5c90113b30c3c43ffb8f4",
+        albumArt:
+          "https://i.scdn.co/image/ab67616d0000b2736ca5c90113b30c3c43ffb8f4",
         duration: 30000,
         progressMs: 0,
+        provider: "test" as const,
       };
       lyricsData = DUMMY_LYRICS_EMINEM;
     } else {
@@ -155,9 +204,11 @@ export default function LyricsView() {
         trackId: "dummy-yoasobi",
         title: "アイドル (Idol)",
         artist: "YOASOBI",
-        albumArt: "https://i.scdn.co/image/ab67616d0000b27371d62ea7ea8a5be92d3c1f62", // Idol Art
+        albumArt:
+          "https://i.scdn.co/image/ab67616d0000b27371d62ea7ea8a5be92d3c1f62", // Idol Art
         duration: 30000,
         progressMs: 0,
+        provider: "test" as const,
       };
       lyricsData = DUMMY_LYRICS_YOASOBI;
     }
@@ -167,10 +218,13 @@ export default function LyricsView() {
     // 1. Set dummy Playback Info
     setPlayback(trackInfo);
 
-    // 2. Set Lyrics (Initially without translation)
+    // 2. Navigate to lyric page for consistency
+    router.push(`/lyric/${trackInfo.trackId}`);
+
+    // 3. Set Lyrics (Initially without translation)
     setLyrics(lyricsData);
 
-    // 3. Start Timer (Simulate playback)
+    // 4. Start Timer (Simulate playback)
     const startTime = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -179,13 +233,18 @@ export default function LyricsView() {
       if (elapsed > 30000) {
         if (timerRef.current) clearInterval(timerRef.current);
         setIsTestRunning(false);
+        // Ensure we signal that playback has stopped, keeping provider as 'test' to trigger redirect in ClientHome
+        setPlayback({ isPlaying: false });
       }
     }, 100); // Update every 100ms
 
-    // 4. Translate or Load from Cache
+    // 5. Translate or Load from Cache
     try {
       // Try DB Cache First
-      const cachedData = await getCachedLyrics(trackInfo.trackId, targetLanguage);
+      const cachedData = await getCachedLyrics(
+        trackInfo.trackId,
+        targetLanguage
+      );
 
       const clientInfo = getClientLogInfo();
 
@@ -242,18 +301,20 @@ export default function LyricsView() {
 
   // Re-translate when targetLanguage changes
   useEffect(() => {
-    if (lyrics.length === 0 || !showTranslation || !currentTrackId) return;
+    // Check if we need re-translation
+    // Use store state directly to catch updates
+    const store = usePlayerStore.getState();
+    const trackIdToUse = store.trackId || currentTrackId;
+
+    if (!trackIdToUse || lyrics.length === 0 || !showTranslation) return;
 
     const translateCurrentLyrics = async () => {
       try {
-        const cachedData = await getCachedLyrics(
-          currentTrackId,
-          targetLanguage
-        );
+        const cachedData = await getCachedLyrics(trackIdToUse, targetLanguage);
         const clientInfo = getClientLogInfo();
 
         if (cachedData) {
-          console.log("Using cached lyrics (lang switch) for:", currentTrackId);
+          console.log("Using cached lyrics (lang switch) for:", trackIdToUse);
           setLyrics(cachedData);
 
           // Log Activity (Lang Switch - Cache Hit)
@@ -269,7 +330,7 @@ export default function LyricsView() {
           return;
         }
 
-        console.log("Translating lyrics (lang switch) for:", currentTrackId);
+        console.log("Translating lyrics (lang switch) for:", trackIdToUse);
         const textsToTranslate = lyrics.map((l) => l.text);
         const translatedTexts = await translateText(
           textsToTranslate,
@@ -282,7 +343,7 @@ export default function LyricsView() {
         }));
 
         setLyrics(newLyrics);
-        await saveCachedLyrics(currentTrackId, targetLanguage, newLyrics);
+        await saveCachedLyrics(trackIdToUse, targetLanguage, newLyrics);
 
         // Log Activity (Lang Switch - API Call)
         await logActivity("translate_switch", {
@@ -301,13 +362,15 @@ export default function LyricsView() {
 
     translateCurrentLyrics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetLanguage, showTranslation]); // removed currentTrackId to avoid loop, but checked inside
+  }, [targetLanguage, showTranslation]); // Listen to targetLanguage changes
 
   // Find active line efficiently
   const activeIndex = useMemo(() => {
     return lyrics.findIndex((line, i) => {
       const nextLine = lyrics[i + 1];
-      return progressMs >= line.time && (!nextLine || progressMs < nextLine.time);
+      return (
+        progressMs >= line.time && (!nextLine || progressMs < nextLine.time)
+      );
     });
   }, [progressMs, lyrics]);
 
@@ -321,7 +384,18 @@ export default function LyricsView() {
     }
   }, [activeIndex]); // Only run when activeIndex changes
 
-  if (isLoadingLyrics) {
+  // Determine if we should show loading state for dummy tracks
+  // Use prop if available (consistent between server/client), fallback to client-side check if needed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const isDummy =
+    isDummyTrack ??
+    (typeof window !== "undefined" &&
+      (window.location.pathname.includes("dummy-eminem") ||
+        window.location.pathname.includes("dummy-yoasobi")));
+  // If we are on a dummy URL but lyrics are empty, show loading instead of "No lyrics"
+  const showLoading = isLoadingLyrics || (isDummy && lyrics.length === 0);
+
+  if (showLoading) {
     return (
       <div className="flex h-full items-center justify-center text-zinc-500 animate-pulse">
         {t.loading}
@@ -370,19 +444,20 @@ export default function LyricsView() {
             <div
               key={line.id}
               ref={isActive ? activeLineRef : null}
-              className={`transition-all duration-500 ease-in-out cursor-pointer ${isActive
-                ? "opacity-100 scale-105 origin-left"
-                : "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
-                }`}
+              className={`transition-all duration-500 ease-in-out cursor-pointer ${
+                isActive
+                  ? "opacity-100 scale-105 origin-left"
+                  : "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
+              }`}
               onClick={() => {
                 // Optional: Seek functionality could be added here
               }}
             >
-              <p className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-1 leading-snug">
+              <p className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-1 leading-snug whitespace-pre-wrap break-words">
                 {line.text}
               </p>
               {showTranslation && line.translation && (
-                <p className="text-lg md:text-xl font-medium text-blue-600 dark:text-blue-400 leading-snug">
+                <p className="text-lg md:text-xl font-medium text-blue-600 dark:text-blue-400 leading-snug whitespace-pre-wrap break-words">
                   {line.translation}
                 </p>
               )}

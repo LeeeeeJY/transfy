@@ -29,6 +29,7 @@ interface PlayerState {
   duration: number;
   progressMs: number;
   lastUpdated: number; // Timestamp for interpolation
+  provider: 'spotify' | 'apple' | 'none' | 'test';
 
   // Lyrics State
   lyrics: LyricsLine[];
@@ -62,6 +63,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   duration: 0,
   progressMs: 0,
   lastUpdated: Date.now(),
+  provider: 'none',
 
   lyrics: [],
   isLoadingLyrics: false,
