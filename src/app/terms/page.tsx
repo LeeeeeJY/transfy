@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { getLanguageFromHeaders } from '@/lib/server-utils';
 
 const TERMS_TEXT = {
@@ -32,7 +33,14 @@ export default async function TermsPage() {
   return (
     <div className="min-h-screen bg-black text-white p-8 md:p-16">
       <div className="max-w-3xl mx-auto space-y-8">
-        <h1 className="text-4xl font-bold mb-8">{t.title}</h1>
+        <div className="flex justify-center mb-4">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Transfy Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
+          </Link>
+        </div>
+
+        <h1 className="text-4xl font-bold mb-8 text-center">{t.title}</h1>
         
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">{t.introTitle}</h2>

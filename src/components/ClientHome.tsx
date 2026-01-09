@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
+import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
 import PlayerControls from "@/components/PlayerControls";
 import AdSense from "@/components/AdSense";
@@ -17,7 +18,7 @@ const UI_TEXT = {
     permissionNotice: "로그인하면 스포티파이 재생 정보를 읽어올 수 있는 권한을 요청합니다.",
     adDesktop: "광고 영역 (데스크탑)",
     titleDefault: "Transfy - 스포티파이 가사 번역기",
-    
+
     // Landing Content
     whyTransfy: "왜 Transfy인가요?",
     featureSyncTitle: "실시간 싱크",
@@ -26,19 +27,19 @@ const UI_TEXT = {
     featureMultiDesc: "한국어, 영어, 일본어, 중국어로 가사를 실시간 번역하세요.",
     featureFastTitle: "빠른 속도",
     featureFastDesc: "고급 캐싱 기술과 최적화된 번역 API로 끊김 없는 경험을 제공합니다.",
-    
+
     howItWorks: "사용 방법",
     step1: "Spotify 계정으로 로그인하세요.",
     step2: "Spotify 앱(모바일 또는 데스크탑)에서 노래를 재생하세요.",
     step3: "Transfy가 자동으로 가사를 띄우고 실시간으로 번역해 줍니다.",
     step4: "가사의 의미를 이해하며 음악을 더 깊이 즐겨보세요!",
-    
+
     faq: "자주 묻는 질문",
     faqFreeTitle: "무료인가요?",
     faqFreeDesc: "네, Transfy는 완전히 무료입니다. 서버 비용 충당을 위해 광고를 표시하고 있습니다.",
     faqSpotifyTitle: "스포티파이 무료 계정도 되나요?",
     faqSpotifyDesc: "네! 프리미엄이든 무료 계정이든 노래만 재생되면 작동합니다.",
-    
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "이용약관",
     footerPrivacy: "개인정보처리방침",
@@ -50,7 +51,7 @@ const UI_TEXT = {
     permissionNotice: "When you sign in, we request permission to read your Spotify playback information.",
     adDesktop: "Ad space (desktop)",
     titleDefault: "Transfy - Spotify Lyrics Translator",
-    
+
     whyTransfy: "Why Transfy?",
     featureSyncTitle: "Real-time Sync",
     featureSyncDesc: "Automatically detects your current Spotify track and syncs lyrics instantly.",
@@ -58,19 +59,19 @@ const UI_TEXT = {
     featureMultiDesc: "Translate lyrics into Korean, English, Japanese, and Chinese with one click.",
     featureFastTitle: "Lightning Fast",
     featureFastDesc: "Powered by advanced caching and optimized translation APIs for zero lag.",
-    
+
     howItWorks: "How it works",
     step1: "Log in with your Spotify account.",
     step2: "Play any song on your Spotify app (Mobile or Desktop).",
     step3: "Transfy will automatically display the lyrics and translate them in real-time.",
     step4: "Enjoy the music with deeper understanding!",
-    
+
     faq: "FAQ",
     faqFreeTitle: "Is it free?",
     faqFreeDesc: "Yes, Transfy is completely free to use. We use ads to support the server costs.",
     faqSpotifyTitle: "Does it work with Spotify Free?",
     faqSpotifyDesc: "Yes! Whether you have Premium or Free, as long as you are playing music, it works.",
-    
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "Terms of Service",
     footerPrivacy: "Privacy Policy",
@@ -82,7 +83,7 @@ const UI_TEXT = {
     permissionNotice: "ログインすると、Spotifyの再生情報を読み取る権限をリクエストします。",
     adDesktop: "広告エリア（デスクトップ）",
     titleDefault: "Transfy - Spotify 歌詞翻訳",
-    
+
     whyTransfy: "Transfyを選ぶ理由",
     featureSyncTitle: "リアルタイム同期",
     featureSyncDesc: "Spotifyで再生中の曲を自動検出し、歌詞を即座に同期します。",
@@ -90,19 +91,19 @@ const UI_TEXT = {
     featureMultiDesc: "韓国語、英語、日本語、中国語にワンクリックで翻訳できます。",
     featureFastTitle: "超高速",
     featureFastDesc: "高度なキャッシュ技術と最適化された翻訳APIにより、遅延のない体験を提供します。",
-    
+
     howItWorks: "使い方",
     step1: "Spotifyアカウントでログインします。",
     step2: "Spotifyアプリ（モバイルまたはデスクトップ）で曲を再生します。",
     step3: "Transfyが自動的に歌詞を表示し、リアルタイムで翻訳します。",
     step4: "歌詞の意味を理解しながら、音楽をもっと楽しみましょう！",
-    
+
     faq: "よくある質問",
     faqFreeTitle: "無料ですか？",
     faqFreeDesc: "はい、Transfyは完全に無料です。サーバー費用を賄うために広告を表示しています。",
     faqSpotifyTitle: "Spotify Freeプランでも使えますか？",
     faqSpotifyDesc: "はい！PremiumでもFreeでも、音楽が再生されていれば動作します。",
-    
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "利用規約",
     footerPrivacy: "プライバシーポリシー",
@@ -114,7 +115,7 @@ const UI_TEXT = {
     permissionNotice: "登录后，我们会请求读取您的 Spotify 播放信息的权限。",
     adDesktop: "广告区域（桌面端）",
     titleDefault: "Transfy - Spotify 歌词翻译",
-    
+
     whyTransfy: "为什么选择 Transfy？",
     featureSyncTitle: "实时同步",
     featureSyncDesc: "自动检测您当前播放的 Spotify 歌曲并即时同步歌词。",
@@ -122,19 +123,19 @@ const UI_TEXT = {
     featureMultiDesc: "一键将歌词翻译成韩语、英语、日语和中文。",
     featureFastTitle: "极速体验",
     featureFastDesc: "由先进的缓存技术和优化的翻译 API 支持，以此实现零延迟。",
-    
+
     howItWorks: "使用方法",
     step1: "使用您的 Spotify 帐户登录。",
     step2: "在您的 Spotify 应用（手机或电脑）上播放任何歌曲。",
     step3: "Transfy 将自动显示歌词并实时翻译。",
     step4: "更深入地理解歌词，享受音乐！",
-    
+
     faq: "常见问题",
     faqFreeTitle: "是免费的吗？",
     faqFreeDesc: "是的，Transfy 完全免费。我们通过广告来支持服务器费用。",
     faqSpotifyTitle: "Spotify 免费版能用吗？",
     faqSpotifyDesc: "可以！无论您是 Premium 还是免费用户，只要在播放音乐，就可以使用。",
-    
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "服务条款",
     footerPrivacy: "隐私政策",
@@ -197,12 +198,14 @@ export default function ClientHome({ initialLang, initialCountry, initialIp }: C
           <div>
             {/* Logo */}
             <div className="flex justify-center mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.svg"
-                alt="Transfy Logo"
-                className="w-24 h-24 shadow-2xl rounded-full hover:scale-110 transition-transform duration-300"
-              />
+              <Link href="/" className="hover:opacity-90 transition-opacity">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.svg"
+                  alt="Transfy Logo"
+                  className="w-24 h-24 shadow-2xl rounded-full hover:scale-110 transition-transform duration-300"
+                />
+              </Link>
             </div>
 
             <h1 className="text-5xl font-bold tracking-tight mb-2">Transfy</h1>
@@ -287,8 +290,8 @@ export default function ClientHome({ initialLang, initialCountry, initialIp }: C
         <footer className="w-full max-w-4xl border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-white/40 gap-4">
           <p>&copy; {new Date().getFullYear()} {t.footerRights}</p>
           <div className="flex gap-6">
-            <a href="/terms" className="hover:text-white transition-colors">{t.footerTerms}</a>
-            <a href="/privacy" className="hover:text-white transition-colors">{t.footerPrivacy}</a>
+            <Link href="/terms" className="hover:text-white transition-colors">{t.footerTerms}</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">{t.footerPrivacy}</Link>
           </div>
         </footer>
       </div>
@@ -323,19 +326,19 @@ export default function ClientHome({ initialLang, initialCountry, initialIp }: C
       </div>
 
       {/* Controls - Fixed at bottom */}
-      <PlayerControls 
+      <PlayerControls
         onLogout={isGuestMode ? () => {
           setIsGuestMode(false);
           // Reset player state completely
-          usePlayerStore.setState({ 
-            isPlaying: false, 
-            title: "", 
-            artist: "", 
+          usePlayerStore.setState({
+            isPlaying: false,
+            title: "",
+            artist: "",
             trackId: null,
             lyrics: [], // Clear lyrics to show selection screen again
             progressMs: 0
-          }); 
-        } : undefined} 
+          });
+        } : undefined}
       />
     </div>
   );
