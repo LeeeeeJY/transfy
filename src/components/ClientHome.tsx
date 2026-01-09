@@ -182,6 +182,9 @@ interface ClientHomeProps {
   isDummyTrack?: boolean;
 }
 
+// Global flag removed in favor of store state
+// let isStoreInitialized = false;
+
 export default function ClientHome({
   initialLang,
   initialCountry,
@@ -192,21 +195,29 @@ export default function ClientHome({
   const { data: session } = useSession();
   const [isGuestMode, setIsGuestMode] = useState(false);
   const initialized = useRef(false);
+  // Using store state for redirect tracking
+  const { isInitialized } = usePlayerStore();
+
   // Add state to track if we are on a lyric page to prevent flashing
   const [isLyricPage, setIsLyricPage] = useState(isLyricPageInitial);
 
   // Initialize store with server values in useEffect to avoid render-phase updates
+  // We use store's isInitialized to ensure we only do this once per SPA session
   useEffect(() => {
     if (!initialized.current) {
-      usePlayerStore.setState({
-        targetLanguage: initialLang,
-        uiLanguage: initialLang,
-        countryCode: initialCountry,
-        clientIp: initialIp,
-      });
+      // Only set initial values if not already initialized (persisted in store)
+      if (!isInitialized) {
+        usePlayerStore.setState({
+          targetLanguage: initialLang,
+          uiLanguage: initialLang,
+          countryCode: initialCountry,
+          clientIp: initialIp,
+          isInitialized: true,
+        });
+      }
       initialized.current = true;
     }
-  }, [initialLang, initialCountry, initialIp]);
+  }, [initialLang, initialCountry, initialIp, isInitialized]);
 
   // CRITICAL: During SSR/Hydration, we MUST use initialLang to match server HTML.
   // We now use initialLang ALWAYS for UI text, so changing translation language doesn't change app UI.
@@ -219,24 +230,91 @@ export default function ClientHome({
   // Initialize Poller (only active when logged in)
   useSpotifyPoller();
 
-  const { title, artist, isPlaying, trackId } = usePlayerStore();
+  const { title, artist, isPlaying, trackId, provider } = usePlayerStore();
   const router = useRouter();
 
   // Centralized Navigation Logic
   useEffect(() => {
-    if (typeof window !== "undefined" && isPlaying && trackId) {
-      // Check current URL from window to be sure (router/pathname might be slightly delayed or we want direct check)
-      const currentPath = window.location.pathname;
-      // If we are not on the correct lyric page
-      if (
-        !currentPath.startsWith("/lyric/") ||
-        !currentPath.includes(trackId)
-      ) {
-        // Avoid redirect loop if we are already navigating or if trackId matches (double check)
-        router.push(`/lyric/${trackId}`);
+    if (typeof window === "undefined") return;
+
+    const currentPath = window.location.pathname;
+    const storageKey = "transfy_redirected_track";
+    const lastAutoRedirectId = sessionStorage.getItem(storageKey);
+
+    // Case 1: Music is playing and it's not a dummy track (or it IS a dummy track, we treat them same for nav)
+    if (isPlaying && trackId) {
+      // 1. If we are on the generic /lyric page, we ALWAYS want to go to the specific track page
+      //    We use REPLACE here so Back button skips the generic page.
+      if (currentPath === "/lyric" || currentPath === "/lyric/") {
+        sessionStorage.setItem(storageKey, trackId);
+        router.replace(`/lyric/${trackId}`);
+        return;
+      }
+
+      // 2. If we are on Home page or a WRONG lyric page
+      const isWrongLyricPage =
+        currentPath.startsWith("/lyric/") && !currentPath.includes(trackId);
+      const isLandingPage = currentPath === "/";
+
+      if (isWrongLyricPage || isLandingPage) {
+        // Only redirect if we haven't already redirected for this specific track
+        // This allows the user to go Back to Home and stay there without being kidnapped again
+        if (lastAutoRedirectId !== trackId) {
+          sessionStorage.setItem(storageKey, trackId);
+          router.push(`/lyric/${trackId}`);
+        }
+      }
+
+      // 3. If we are already on the correct page, sync the storage just in case
+      else if (currentPath.includes(trackId)) {
+        if (lastAutoRedirectId !== trackId) {
+          sessionStorage.setItem(storageKey, trackId);
+        }
       }
     }
-  }, [isPlaying, trackId, router]);
+    // Case 2: Music is NOT playing
+    else {
+      // If we are on a specific lyric page but nothing is playing
+      // AND it's not the initial loading phase of a dummy track (which might briefly have no provider/playing state)
+      // We check provider !== 'none' to allow some grace period, but specific dummy check is better.
+      const isInitialDummyLoad = isDummyTrack && provider === "none";
+
+      if (!isInitialDummyLoad) {
+        // If on a specific lyric page (e.g. /lyric/123) and stopped, go to generic /lyric
+        if (
+          currentPath.startsWith("/lyric/") &&
+          currentPath.length > "/lyric/".length
+        ) {
+          router.replace("/lyric");
+        }
+      }
+    }
+  }, [
+    isPlaying,
+    trackId,
+    router,
+    isDummyTrack,
+    provider,
+    session,
+    isGuestMode,
+  ]);
+
+  // If session is lost (e.g. NextAuth logout), reset store to prevent state pollution
+  useEffect(() => {
+    if (!session && provider !== "test" && provider !== "none") {
+      usePlayerStore.setState({
+        isPlaying: false,
+        title: "",
+        artist: "",
+        albumArt: "",
+        trackId: null,
+        lyrics: [],
+        progressMs: 0,
+        provider: "none",
+      });
+      sessionStorage.removeItem("transfy_redirected_track");
+    }
+  }, [session, provider]);
 
   // If session exists or we are on lyric page, we might want guest mode equivalent
   useEffect(() => {
@@ -253,12 +331,31 @@ export default function ClientHome({
 
   // Dynamic Title Update
   useEffect(() => {
-    if ((session || isGuestMode) && isPlaying && title && artist) {
+    // Only update title if we have valid info
+    if (
+      (session || isGuestMode || provider === "test") &&
+      isPlaying &&
+      title &&
+      artist
+    ) {
       document.title = `${title} - ${artist} | Transfy`;
     } else {
-      document.title = t.titleDefault;
+      // Only reset to default if we are NOT on a lyric page (to avoid overwriting server metadata unnecessarily)
+      // But if we are playing nothing, maybe we should?
+      // Let's stick to default behavior but ensure 'test' provider is covered.
+      if (!isPlaying) {
+        document.title = t.titleDefault;
+      }
     }
-  }, [session, isGuestMode, isPlaying, title, artist, t.titleDefault]);
+  }, [
+    session,
+    isGuestMode,
+    isPlaying,
+    title,
+    artist,
+    t.titleDefault,
+    provider,
+  ]);
 
   // Show home UI only if not logged in, not in guest mode, AND not on a lyric page
   if (!session && !isGuestMode && !isLyricPage) {
@@ -442,7 +539,9 @@ export default function ClientHome({
                   trackId: null,
                   lyrics: [], // Clear lyrics to show selection screen again
                   progressMs: 0,
+                  provider: "none",
                 });
+                sessionStorage.removeItem("transfy_redirected_track");
                 setIsLyricPage(false); // Reset lyric page state
                 router.push("/");
               }

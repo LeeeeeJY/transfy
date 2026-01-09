@@ -42,6 +42,9 @@ interface PlayerState {
   countryCode: string; // User's country code (e.g., KR, US)
   clientIp: string; // User's IP address
 
+  // Navigation State
+  isInitialized: boolean;
+
   // Actions
   setPlayback: (state: Partial<PlayerState>) => void;
   setLyrics: (lyrics: LyricsLine[]) => void;
@@ -52,6 +55,7 @@ interface PlayerState {
   setUiLanguage: (lang: string) => void;
   setCountryCode: (code: string) => void;
   setClientIp: (ip: string) => void;
+  setInitialized: (val: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -74,6 +78,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   countryCode: "Unknown",
   clientIp: "Unknown",
 
+  isInitialized: false,
+
   setPlayback: (state) => set((prev) => ({ ...prev, ...state, lastUpdated: Date.now() })),
   setLyrics: (lyrics) => set({ lyrics }),
   setLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }),
@@ -83,4 +89,5 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setUiLanguage: (lang) => set({ uiLanguage: lang }),
   setCountryCode: (code) => set({ countryCode: code }),
   setClientIp: (ip) => set({ clientIp: ip }),
+  setInitialized: (val) => set({ isInitialized: val }),
 }));
