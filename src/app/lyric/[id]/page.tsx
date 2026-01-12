@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import axios from "axios";
 import ClientHome from "@/components/ClientHome";
+import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
+import { POPULAR_SONGS } from "@/data/dummySongs";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -8,6 +10,17 @@ type Props = {
 };
 
 async function getTrackDetails(id: string) {
+  // 1. Check Dummy Data first
+  const dummySong = POPULAR_SONGS.find(s => s.id === id);
+  if (dummySong) {
+    return {
+      name: dummySong.title,
+      artistName: dummySong.artist,
+      artwork: { url: dummySong.albumArt.replace("https://", "https://") } // Dummy logic
+    };
+  }
+
+  // 2. Fallback to Apple Music API
   const token = process.env.NEXT_PUBLIC_APPLE_DEVELOPER_TOKEN;
   if (!token) return null;
 
@@ -76,15 +89,11 @@ export default async function LyricPage({ params }: Props) {
   // We should render ClientHome here to keep the layout consistent.
   // But ClientHome expects initialLang, etc. We need to fetch them or pass defaults.
 
-  // For simplicity, we'll re-use the layout structure if we want persistence.
-  // However, next.js app router encourages layout.tsx for persistence.
-  // ClientHome currently IS the page content.
-
   // Let's pass the props required by ClientHome.
   // In a real app, these come from headers/middleware.
-  const initialLang = "ko"; // Default or detect from headers
-  const initialCountry = "KR";
-  const initialIp = "127.0.0.1";
+  const initialLang = await getLanguageFromHeaders();
+  const initialCountry = await getCountryFromHeaders();
+  const initialIp = await getClientIp();
   const isDummyTrack = id.startsWith("dummy-");
 
   return (

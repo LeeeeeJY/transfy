@@ -3,8 +3,8 @@ import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/li
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Song Lyrics | Transfy",
-  description: "Real-time lyrics translation for Spotify and Apple Music.",
+  title: "Music Player | Transfy",
+  description: "Real-time lyrics translation player.",
 };
 
 export default async function LyricRootPage() {

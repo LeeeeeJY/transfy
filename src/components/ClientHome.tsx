@@ -50,6 +50,15 @@ const UI_TEXT = {
     servicePreparing: "서비스 준비 중입니다.",
     loginApple: "Apple Music으로 로그인",
 
+    // SEO Content (Korean)
+    seoTitle: "전 세계를 잇는 음악 경험",
+    seoDesc1: "오늘날 음악은 국경이 없습니다. K-Pop, J-Pop, 팝송 등 전 세계 음악을 즐기지만, 언어의 장벽 때문에 가사의 깊은 의미를 놓치기도 합니다. Transfy는 이 문제를 해결하기 위해 스포티파이 실시간 가사 번역 서비스를 제공합니다.",
+    seoDesc2: "새로운 언어를 배우고 있거나 단순히 가사의 의미를 알고 싶을 때, Transfy는 최고의 청취 경험을 선사합니다. 노래가 재생되면 즉시 번역된 가사를 띄워주어 흐름을 끊지 않고 음악에 몰입할 수 있습니다.",
+    seoSubTitle1: "왜 실시간 번역인가요?",
+    seoSubDesc1: "기존의 가사 해석은 음악 앱을 끄고 검색해서 스크롤하며 봐야 했습니다. Transfy는 듣고 있는 음악과 완벽하게 동기화되어, 마치 음악 플레이어의 기본 기능처럼 작동합니다.",
+    seoSubTitle2: "지원 언어",
+    seoSubDesc2: "현재 한국어, 영어, 일본어, 중국어 간의 상호 번역을 지원합니다. 다양한 문화권의 사용자가 언어 장벽 없이 음악을 즐길 수 있도록, 지속적으로 언어를 추가하고 AI 모델을 고도화하고 있습니다.",
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "이용약관",
     footerPrivacy: "개인정보처리방침",
@@ -92,6 +101,15 @@ const UI_TEXT = {
     servicePreparing: "Service is preparing.",
     loginApple: "Sign in with Apple Music",
 
+    // SEO Content (English)
+    seoTitle: "Global Music Experience",
+    seoDesc1: "In today's interconnected world, music knows no boundaries. K-Pop, J-Pop, and Western Pop are enjoyed globally, yet language barriers often limit the depth of appreciation. Transfy bridges this gap by providing real-time, synchronized translations for your favorite Spotify tracks.",
+    seoDesc2: "Whether you are learning a new language or simply want to understand the meaning behind the lyrics, Transfy enhances your listening experience. Our technology ensures that translations are delivered instantly as the song plays, allowing you to stay immersed in the rhythm while grasping the message.",
+    seoSubTitle1: "Why Real-time Translation Matters",
+    seoSubDesc1: "Static lyrics translations have existed for a long time, but they require you to look away from the music player and scroll manually. Transfy integrates directly with your listening session. By detecting the currently playing song on Spotify, we fetch and display the translated lyrics in perfect sync. This seamless integration makes it feel like a native feature of your music player.",
+    seoSubTitle2: "Supported Languages",
+    seoSubDesc2: "Currently, Transfy supports translation between major global languages including Korean, English, Japanese, and Chinese. This coverage allows users from different cultural backgrounds to enjoy music from around the world without language barriers. We are continuously working to add more languages and improve translation accuracy through advanced AI models.",
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "Terms of Service",
     footerPrivacy: "Privacy Policy",
@@ -132,6 +150,15 @@ const UI_TEXT = {
     servicePreparing: "サービス準備中です。",
     loginApple: "Apple Musicでログイン",
 
+    // SEO Content (Japanese)
+    seoTitle: "世界をつなぐ音楽体験",
+    seoDesc1: "今日、音楽に国境はありません。K-Pop、J-Pop、洋楽など世界中の音楽を楽しんでいますが、言葉の壁により歌詞の深い意味を逃してしまうこともあります。Transfyはこの問題を解決するため、Spotifyのリアルタイム歌詞翻訳サービスを提供します。",
+    seoDesc2: "新しい言語を学んでいる時や、単に歌詞の意味を知りたい時、Transfyは最高のリスニング体験をお届けします。曲が再生されると即座に翻訳された歌詞が表示され、流れを止めることなく音楽に没頭できます。",
+    seoSubTitle1: "なぜリアルタイム翻訳なのか？",
+    seoSubDesc1: "従来の歌詞翻訳は、音楽アプリを閉じて検索し、スクロールしながら見る必要がありました。Transfyは聴いている音楽と完全に同期し、まるで音楽プレイヤーの標準機能のように動作します。",
+    seoSubTitle2: "対応言語",
+    seoSubDesc2: "現在、韓国語、英語、日本語、中国語間の相互翻訳に対応しています。様々な文化圏のユーザーが言葉の壁なく音楽を楽しめるよう、継続的に言語を追加しAIモデルを高度化しています。",
+
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "利用規約",
     footerPrivacy: "プライバシーポリシー",
@@ -167,6 +194,15 @@ const UI_TEXT = {
 
     servicePreparing: "服务准备中。",
     loginApple: "使用 Apple Music 登录",
+
+    // SEO Content (Chinese)
+    seoTitle: "连接全球的音乐体验",
+    seoDesc1: "在当今互联的世界中，音乐无国界。K-Pop、J-Pop 和欧美流行音乐风靡全球，但语言障碍往往限制了对歌词深层含义的理解。Transfy 通过提供 Spotify 实时歌词翻译服务来弥补这一差距。",
+    seoDesc2: "无论您是在学习新语言，还是仅仅想了解歌词的含义，Transfy 都能为您提供最佳的聆听体验。歌曲播放时，翻译歌词即时显示，让您在不打断流畅度的情况下沉浸在音乐中。",
+    seoSubTitle1: "为什么实时翻译很重要？",
+    seoSubDesc1: "传统的歌词翻译需要您关闭音乐应用，手动搜索并滚动浏览。Transfy 与您的聆听过程完美同步，就像音乐播放器的原生功能一样。",
+    seoSubTitle2: "支持语言",
+    seoSubDesc2: "目前支持韩语、英语、日语和中文之间的相互翻译。为了让不同文化背景的用户都能无障碍地享受音乐，我们正在持续添加更多语言并优化 AI 模型。",
 
     footerRights: "Transfy. All rights reserved.",
     footerTerms: "服务条款",
@@ -401,12 +437,24 @@ export default function ClientHome({
             </button>
 
             <button
-              onClick={() => router.push("/lyric")}
+              onClick={() => router.push("/charts")}
               className="w-full flex items-center justify-center gap-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-4 px-6 rounded-full transition-all border border-zinc-700"
             >
               <Sparkles className="w-5 h-5 text-yellow-400" />
               {t.guestMode}
             </button>
+
+            <div className="pt-4 text-center">
+              <p className="text-sm text-white/60 mb-3">Popular Lyrics</p>
+              <div className="flex gap-3 justify-center">
+                <Link href="/lyric/dummy-eminem" className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors">
+                  Eminem - Lose Yourself
+                </Link>
+                <Link href="/lyric/dummy-yoasobi" className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors">
+                  YOASOBI - Idol
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 text-xs text-white/50">{t.permissionNotice}</div>
@@ -444,6 +492,15 @@ export default function ClientHome({
             </div>
           </section>
 
+          {/* AdSense Unit 1 */}
+          <div className="w-full flex justify-center py-4">
+            <AdSense
+              className="w-full rounded-xl"
+              style={{ display: "block", minHeight: "100px", width: "100%" }}
+              format="auto"
+            />
+          </div>
+
           {/* How it works */}
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.howItWorks}</h2>
@@ -454,6 +511,15 @@ export default function ClientHome({
               <li>{t.step4}</li>
             </ol>
           </section>
+
+          {/* AdSense Unit 2 */}
+          <div className="w-full flex justify-center py-4">
+            <AdSense
+              className="w-full rounded-xl"
+              style={{ display: "block", minHeight: "100px", width: "100%" }}
+              format="auto"
+            />
+          </div>
 
           {/* FAQ */}
           <section className="space-y-6">
@@ -470,6 +536,28 @@ export default function ClientHome({
                 <p className="text-white/70">{t.faqSpotifyDesc}</p>
               </div>
             </div>
+          </section>
+
+          {/* AdSense Unit 3 - Text Content Ad */}
+          <div className="w-full flex justify-center py-4">
+            <AdSense
+              className="w-full rounded-xl"
+              style={{ display: "block", minHeight: "100px", width: "100%" }}
+              format="auto"
+            />
+          </div>
+
+          {/* Additional SEO Content - Global Music Tech */}
+          <section className="space-y-6">
+            <h2 className="text-3xl font-bold">{t.seoTitle}</h2>
+            <article className="prose prose-invert max-w-none text-white/80">
+              <p>{t.seoDesc1}</p>
+              <p className="mt-4">{t.seoDesc2}</p>
+              <h3 className="text-xl font-semibold mt-6 mb-2">{t.seoSubTitle1}</h3>
+              <p>{t.seoSubDesc1}</p>
+              <h3 className="text-xl font-semibold mt-6 mb-2">{t.seoSubTitle2}</h3>
+              <p>{t.seoSubDesc2}</p>
+            </article>
           </section>
         </div>
 
@@ -529,22 +617,22 @@ export default function ClientHome({
         onLogout={
           isGuestMode
             ? () => {
-                setIsGuestMode(false);
-                // Reset player state completely
-                usePlayerStore.setState({
-                  isPlaying: false,
-                  title: "",
-                  artist: "",
-                  albumArt: "",
-                  trackId: null,
-                  lyrics: [], // Clear lyrics to show selection screen again
-                  progressMs: 0,
-                  provider: "none",
-                });
-                sessionStorage.removeItem("transfy_redirected_track");
-                setIsLyricPage(false); // Reset lyric page state
-                router.push("/");
-              }
+              setIsGuestMode(false);
+              // Reset player state completely
+              usePlayerStore.setState({
+                isPlaying: false,
+                title: "",
+                artist: "",
+                albumArt: "",
+                trackId: null,
+                lyrics: [], // Clear lyrics to show selection screen again
+                progressMs: 0,
+                provider: "none",
+              });
+              sessionStorage.removeItem("transfy_redirected_track");
+              setIsLyricPage(false); // Reset lyric page state
+              router.push("/");
+            }
             : undefined
         }
       />

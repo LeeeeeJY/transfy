@@ -63,7 +63,16 @@ export default function AdSense({ className, style, slot = "1234567890", format 
   }
 
   return (
-    <div className={`overflow-hidden flex justify-center bg-zinc-50 dark:bg-zinc-900/50 ${className || "w-full py-4"}`} style={style}>
+    <div className={`relative overflow-hidden flex justify-center items-center bg-gray-100 dark:bg-zinc-900 border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-lg ${className || "w-full py-4"}`} style={style}>
+      {/* Label for visual structure before ad loads */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 pointer-events-none">
+        <span className="text-xs text-gray-400 dark:text-zinc-600 font-medium uppercase tracking-widest mb-1">
+          Advertisement
+        </span>
+        <span className="text-[10px] text-gray-300 dark:text-zinc-700">
+          Space
+        </span>
+      </div>
       {/* Responsive Ad Unit */}
       <ins
         ref={adRef}
