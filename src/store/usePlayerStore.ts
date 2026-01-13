@@ -29,7 +29,7 @@ interface PlayerState {
   duration: number;
   progressMs: number;
   lastUpdated: number; // Timestamp for interpolation
-  provider: 'spotify' | 'apple' | 'none' | 'test';
+  provider: 'spotify' | 'apple' | 'none';
 
   // Lyrics State
   lyrics: LyricsLine[];

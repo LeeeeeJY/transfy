@@ -259,7 +259,23 @@ export default function ClientHome({
     if (initialTrack && isLyricPageInitial) {
       // Split plain lyrics by newline and convert to LyricsLine format
       // In future, we should use syncedLyrics for better experience
-      const lyricsText = initialTrack.lyrics || "Lyrics not found.";
+      const lyricsText = initialTrack.lyrics;
+
+      if (!lyricsText || lyricsText === "Lyrics not found.") {
+        usePlayerStore.setState({
+          title: initialTrack.title,
+          artist: initialTrack.artist,
+          albumArt: initialTrack.albumArt,
+          lyrics: [], // No lyrics available
+          isPlaying: false, // It's static view initially
+          provider: "none",
+          isInitialized: true,
+          trackId: `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(), // Ensure unique ID even for empty lyrics
+          isLoadingLyrics: false // Loading finished, but no lyrics
+        });
+        return;
+      }
+
       const lyricsLines = lyricsText.split('\n');
       const lyricsArray: LyricsLine[] = lyricsLines
         .filter(line => line.trim().length > 0) // Remove empty lines
@@ -276,7 +292,9 @@ export default function ClientHome({
         lyrics: lyricsArray,
         isPlaying: false, // It's static view initially
         provider: "none",
-        isInitialized: true
+        isInitialized: true,
+        trackId: `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(), // Ensure unique ID for this track
+        isLoadingLyrics: false // Loading finished
       });
     }
   }, [initialTrack, isLyricPageInitial]);
@@ -319,7 +337,7 @@ export default function ClientHome({
 
   // Reset store on logout
   useEffect(() => {
-    if (!session && provider !== "test" && provider !== "none" && !initialTrack) {
+    if (!session && provider !== "none" && !initialTrack) {
       usePlayerStore.setState({
         isPlaying: false,
         title: "",
@@ -348,7 +366,7 @@ export default function ClientHome({
   // Dynamic Title
   useEffect(() => {
     if (
-      (session || isGuestMode || provider === "test") &&
+      (session || isGuestMode) &&
       isPlaying &&
       title &&
       artist
@@ -477,11 +495,9 @@ export default function ClientHome({
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden">
-      <main className="flex-1 relative overflow-hidden w-full pt-14">
-        <div className="absolute inset-0">
-          <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
-        </div>
+    <div className="flex flex-col min-h-screen bg-black text-white">
+      <main className="flex-1 w-full bg-black">
+        <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
       </main>
 
       <div className="fixed top-20 right-4 z-40 hidden xl:block w-[300px] pointer-events-none">

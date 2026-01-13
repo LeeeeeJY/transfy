@@ -42,41 +42,98 @@ export const searchTracks = async (term: string): Promise<Track[]> => {
   }
 };
 
-// LRCLIB API
-export const getLyrics = async (artist: string, title: string, duration?: number): Promise<LyricsData> => {
-  try {
-    const response = await axios.get('https://lrclib.net/api/get', {
-      params: {
-        artist_name: artist,
-        track_name: title,
-        duration: duration ? Math.round(duration) : undefined,
-      },
-    });
+// Helper to clean title
+function cleanTitle(title: string): string {
+  // Remove text in brackets like (Feat. X), [Remix], - Remastered
+  return title
+    .replace(/\s*[\(\[](?:feat|ft|prod|with|remix|mix|ver|edit|deluxe|ost|original|remaster).*?[\)\]]/gi, '')
+    .replace(/\s*-\s*(?:remaster|remix|live).*$/gi, '')
+    .trim();
+}
 
-    return {
-      syncedLyrics: response.data.syncedLyrics,
-      plainLyrics: response.data.plainLyrics,
-    };
-  } catch (error) {
-    // If exact match fails, try search
+// LRCLIB API
+export const getLyrics = async (artist: string, title: string, duration?: number, album?: string): Promise<LyricsData> => {
+  const fetchFromLrcLib = async (params: any) => {
     try {
-      const searchResponse = await axios.get('https://lrclib.net/api/search', {
-        params: {
-          q: `${artist} ${title}`,
-        },
+      const response = await axios.get('https://lrclib.net/api/get', { params });
+      return response.data;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const searchFromLrcLib = async (q: string) => {
+    try {
+      const response = await axios.get('https://lrclib.net/api/search', { params: { q } });
+      return response.data[0]; // Best match
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // 1. Try Exact Match (Strict)
+  let data = await fetchFromLrcLib({
+    artist_name: artist,
+    track_name: title,
+    album_name: album,
+    duration: duration ? Math.round(duration) : undefined,
+  });
+
+  // 2. Try Search with Duration (High Accuracy)
+  if (!data?.plainLyrics && !data?.syncedLyrics) {
+    // If duration is provided, filter search results by duration
+    if (duration) {
+       try {
+        const searchRes = await axios.get('https://lrclib.net/api/search', { 
+          params: { q: `${artist} ${title}` } 
+        });
+        // Find a track with similar duration (+- 5 seconds tolerance)
+        data = searchRes.data.find((t: any) => Math.abs(t.duration - duration) < 5);
+       } catch(e) {}
+    }
+  }
+
+  // 3. Try Loose Search (Just Artist + Title)
+  if (!data?.plainLyrics && !data?.syncedLyrics) {
+    data = await searchFromLrcLib(`${artist} ${title}`);
+  }
+
+  // 4. Try Cleaned Title Search (Remove Feat, etc.)
+  if (!data?.plainLyrics && !data?.syncedLyrics) {
+    const cleanedTitle = cleanTitle(title);
+    if (cleanedTitle !== title) {
+      console.log(`Retrying with cleaned title: ${cleanedTitle}`);
+      data = await searchFromLrcLib(`${artist} ${cleanedTitle}`);
+    }
+  }
+
+  // 5. Try Search by Title Only (Handle cases where Artist name is localized/mismatched)
+  if (!data?.plainLyrics && !data?.syncedLyrics) {
+    console.log(`Retrying with just title: ${title}`);
+    try {
+      const searchRes = await axios.get('https://lrclib.net/api/search', { 
+        params: { q: title } 
       });
       
-      const firstMatch = searchResponse.data[0];
-      if (firstMatch) {
-        return {
-          syncedLyrics: firstMatch.syncedLyrics,
-          plainLyrics: firstMatch.plainLyrics,
-        };
+      if (duration) {
+        // Precise match: Title contains original query AND duration matches
+        data = searchRes.data.find((t: any) => 
+           t.trackName.toLowerCase().includes(title.toLowerCase()) && 
+           Math.abs(t.duration - duration) < 5
+        );
+      } else {
+        // Without duration, find exact title match to reduce false positives
+        data = searchRes.data.find((t: any) => t.trackName.toLowerCase() === title.toLowerCase());
       }
-    } catch (e) {
-      console.error('LRCLIB Search Error:', e);
-    }
-    
-    return { syncedLyrics: null, plainLyrics: null };
+    } catch(e) {}
   }
+
+  if (data) {
+    return {
+      syncedLyrics: data.syncedLyrics,
+      plainLyrics: data.plainLyrics,
+    };
+  }
+    
+  return { syncedLyrics: null, plainLyrics: null };
 };

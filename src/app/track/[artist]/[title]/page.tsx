@@ -23,10 +23,11 @@ interface TrackInfo {
 async function getTrackInfo(artistSlug: string, titleSlug: string): Promise<TrackInfo | null> {
   const artist = decodeTrackUrlParam(artistSlug);
   const title = decodeTrackUrlParam(titleSlug);
+  const lang = await getLanguageFromHeaders(); // Get user language preference
 
   // 1. Check Dummy Data first (Fastest)
-  const dummySong = POPULAR_SONGS.find(s => 
-    s.artist.toLowerCase() === artist.toLowerCase() && 
+  const dummySong = POPULAR_SONGS.find(s =>
+    s.artist.toLowerCase() === artist.toLowerCase() &&
     s.title.toLowerCase() === title.toLowerCase()
   );
 
@@ -45,17 +46,35 @@ async function getTrackInfo(artistSlug: string, titleSlug: string): Promise<Trac
     // Use Server Action for iTunes search to avoid CORS issues if this code is shared/moved
     // Though here in Server Component, direct axios is fine, but consistency is good.
     const [itunesTracks, lrcData] = await Promise.all([
-      searchTracksAction(`${artist} ${title}`),
+      searchTracksAction(`${artist} ${title}`, lang), // Pass language
       getLyrics(artist, title)
     ]);
 
     // Find best match from iTunes
-    const trackMetadata = itunesTracks.find(t => 
-      t.artist.toLowerCase().includes(artist.toLowerCase()) || 
+    const trackMetadata = itunesTracks.find(t =>
+      t.artist.toLowerCase().includes(artist.toLowerCase()) ||
       t.title.toLowerCase().includes(title.toLowerCase())
     ) || itunesTracks[0];
 
-    if (!trackMetadata && !lrcData.plainLyrics) {
+    // If initial lyrics fetch failed, try again with iTunes metadata (which might have correct localized title)
+    let finalLyrics = lrcData.plainLyrics;
+    let finalSyncedLyrics = lrcData.syncedLyrics;
+
+    if (!finalLyrics && trackMetadata) {
+      // Retry using iTunes metadata (Artist Name, Track Name, Duration, Album)
+      // This is crucial for tracks where user input language differs from lyrics DB language
+      console.log(`Retry fetching lyrics with metadata: ${trackMetadata.artist} - ${trackMetadata.title}`);
+      const retryLrcData = await getLyrics(
+        trackMetadata.artist,
+        trackMetadata.title,
+        trackMetadata.duration,
+        trackMetadata.album
+      );
+      finalLyrics = retryLrcData.plainLyrics;
+      finalSyncedLyrics = retryLrcData.syncedLyrics;
+    }
+
+    if (!trackMetadata && !finalLyrics) {
       return null;
     }
 
@@ -63,8 +82,8 @@ async function getTrackInfo(artistSlug: string, titleSlug: string): Promise<Trac
       title: trackMetadata?.title || title,
       artist: trackMetadata?.artist || artist,
       albumArt: trackMetadata?.albumArt || "/file.svg", // Fallback image
-      lyrics: lrcData.plainLyrics || "Lyrics not found.",
-      syncedLyrics: lrcData.syncedLyrics
+      lyrics: finalLyrics || "Lyrics not found.",
+      syncedLyrics: finalSyncedLyrics
     };
   } catch (e) {
     console.error("Error fetching track info:", e);
@@ -76,7 +95,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { artist, title } = await params;
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
-  
+
   // Fetch real info for better metadata
   const trackInfo = await getTrackInfo(artist, title);
   const displayTitle = trackInfo?.title || decodedTitle;
@@ -108,7 +127,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TrackPage({ params }: Props) {
   const { artist, title } = await params;
-  
+
   const trackInfo = await getTrackInfo(artist, title);
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
@@ -144,7 +163,7 @@ export default async function TrackPage({ params }: Props) {
           __html: JSON.stringify(structuredData),
         }}
       />
-      
+
       {/* Hidden Content for SEO Bots */}
       <div className="sr-only">
         <h1>{trackInfo?.title || decodedTitle} Lyrics - {trackInfo?.artist || decodedArtist}</h1>
