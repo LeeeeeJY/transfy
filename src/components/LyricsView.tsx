@@ -7,6 +7,7 @@ import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
 import { useRouter, usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
+import { Loader2 } from "lucide-react";
 
 // UI Text Dictionary
 const UI_TEXT = {
@@ -14,21 +15,25 @@ const UI_TEXT = {
     loading: "가사를 불러오는 중...",
     noLyrics: "가사를 찾을 수 없습니다.",
     playMusic: "음악을 재생해주세요.",
+    translating: "번역 중...",
   },
   en: {
     loading: "Loading lyrics...",
     noLyrics: "No lyrics found.",
     playMusic: "Please play music.",
+    translating: "Translating...",
   },
   ja: {
     loading: "歌詞を読み込み中...",
     noLyrics: "歌詞が見つかりません。",
     playMusic: "音楽を再生してください。",
+    translating: "翻訳中...",
   },
   zh: {
     loading: "正在加载歌词...",
     noLyrics: "未找到歌词。",
     playMusic: "请播放音乐。",
+    translating: "翻译中...",
   },
 };
 
@@ -52,11 +57,63 @@ export default function LyricsView({
     setPlayback,
     updateProgress,
     targetLanguage,
-    uiLanguage, // Add uiLanguage
+    uiLanguage,
     countryCode,
     clientIp,
-    setLoadingLyrics // Add setLoadingLyrics
+    setLoadingLyrics,
+    trackId: storeTrackId,
+    setLyrics: setStoreLyrics,
+    setPlayback: setStorePlayback
   } = usePlayerStore();
+
+  const [isTranslating, setIsTranslating] = useState(false);
+  const pathname = usePathname();
+  const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
+
+  // Extract trackId from URL using pathname prop for consistency
+  const getTrackIdFromUrl = (): string | null => {
+    if (!pathname) return null;
+
+    // Check for /lyric/ID pattern
+    const lyricMatch = pathname.match(/\/lyric\/([^/]+)/);
+    if (lyricMatch) return lyricMatch[1];
+
+    // Check for /track/ARTIST/TITLE pattern
+    const trackMatch = pathname.match(/\/track\/([^/]+)\/([^/]+)/);
+    if (trackMatch) {
+      const artist = decodeURIComponent(trackMatch[1]);
+      const title = decodeURIComponent(trackMatch[2]);
+      return `static-${artist}-${title}`.replace(/\s+/g, '-').toLowerCase();
+    }
+
+    return null;
+  };
+
+  const urlTrackId = getTrackIdFromUrl();
+
+  // Check mismatch immediately for rendering
+  const isIdMismatch = urlTrackId && storeTrackId && urlTrackId !== storeTrackId;
+
+  // Check if URL trackId matches store trackId and clear lyrics if mismatch
+  useEffect(() => {
+    // Always clear lyrics when component mounts to prevent showing previous lyrics
+    // But only if we are navigating to a new track
+    if (isIdMismatch) {
+      console.log("Clearing lyrics on mount/change due to ID mismatch");
+      setStoreLyrics([]);
+      setLoadingLyrics(true); // Start loading
+      setStorePlayback({
+        isPlaying: false,
+        trackId: urlTrackId!, // Temporarily set trackId to URL one so we know what we are loading
+        title: "",
+        artist: "",
+        albumArt: "",
+        duration: 0,
+        progressMs: 0,
+        provider: "none",
+      });
+    }
+  }, [isIdMismatch, urlTrackId, setStoreLyrics, setStorePlayback, setLoadingLyrics]);
 
   // Use initialUiLanguage for the first render to match server
   // Then fallback to store value (which syncs with client preference)
@@ -95,57 +152,6 @@ export default function LyricsView({
 
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [currentTrackId, setCurrentTrackId] = useState<string | null>(null); // Track ID for caching context
-  const pathname = usePathname();
-  const { trackId: storeTrackId, setLyrics: setStoreLyrics, setPlayback: setStorePlayback } = usePlayerStore();
-
-  // Extract trackId from URL
-  const getTrackIdFromUrl = (): string | null => {
-    if (typeof window === "undefined") return null;
-    const path = window.location.pathname;
-
-    // Check for /lyric/ID pattern
-    const lyricMatch = path.match(/\/lyric\/([^/]+)/);
-    if (lyricMatch) return lyricMatch[1];
-
-    // Check for /track/ARTIST/TITLE pattern
-    // We need to generate a consistent ID from artist and title to match what ClientHome generates
-    const trackMatch = path.match(/\/track\/([^/]+)\/([^/]+)/);
-    if (trackMatch) {
-      const artist = decodeURIComponent(trackMatch[1]);
-      const title = decodeURIComponent(trackMatch[2]);
-      return `static-${artist}-${title}`.replace(/\s+/g, '-').toLowerCase();
-    }
-
-    return null;
-  };
-
-  // Check if URL trackId matches store trackId and clear lyrics if mismatch
-  useEffect(() => {
-    // Always clear lyrics when component mounts to prevent showing previous lyrics
-    // But only if we are navigating to a new track
-    if (typeof window === "undefined") return;
-
-    const urlTrackId = getTrackIdFromUrl();
-    const { trackId: currentStoreTrackId } = usePlayerStore.getState();
-
-    // If we are on a lyric page and the ID doesn't match the store, or just to be safe on mount
-    if (urlTrackId && urlTrackId !== currentStoreTrackId) {
-      console.log("Clearing lyrics on mount/change due to ID mismatch");
-      setStoreLyrics([]);
-      setLoadingLyrics(true); // Start loading
-      setStorePlayback({
-        isPlaying: false,
-        trackId: urlTrackId, // Temporarily set trackId to URL one so we know what we are loading
-        title: "",
-        artist: "",
-        albumArt: "",
-        duration: 0,
-        progressMs: 0,
-        provider: "none",
-      });
-    }
-  }, [pathname, setStoreLyrics, setStorePlayback, setLoadingLyrics]);
 
   // Helper function for translation
   const translateAndSetLyrics = async (
@@ -155,6 +161,7 @@ export default function LyricsView({
     rawLyrics: LyricsLine[]
   ) => {
     try {
+      setIsTranslating(true);
       // Try DB Cache First
       const cachedData = await getCachedLyrics(trackId, targetLanguage);
       const clientInfo = getClientLogInfo();
@@ -207,6 +214,8 @@ export default function LyricsView({
       }
     } catch (error) {
       console.error("Translation failed", error);
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -214,14 +223,16 @@ export default function LyricsView({
   useEffect(() => {
     const isStaticMode = usePlayerStore.getState().provider === 'none';
     const hasLyrics = lyrics.length > 0;
-    // Check if we need translation: showTranslation is on, and at least one line has no translation
-    const needsTranslation = showTranslation && lyrics.some(l => !l.translation);
+
+    // Check if we need translation: showTranslation is on
+    // Removed lyrics.some(l => !l.translation) check to allow re-translation when targetLanguage changes
+    const shouldTranslate = showTranslation;
 
     // Use title/artist from store as ID proxy for static tracks
     // Ideally we should have a real ID, but for search results we might not have a stable one unless we hash artist+title
     const { title, artist } = usePlayerStore.getState();
 
-    if (isStaticMode && hasLyrics && needsTranslation && title && artist) {
+    if (isStaticMode && hasLyrics && shouldTranslate && title && artist) {
       // Use a composite ID for caching
       const compositeId = `static-${artist}-${title}`.replace(/\s+/g, '-').toLowerCase();
 
@@ -268,14 +279,15 @@ export default function LyricsView({
   }, [activeIndex]); // Only run when activeIndex changes
 
   // Determine if we should show loading state for dummy tracks
-  const urlTrackId = typeof window !== "undefined" ? getTrackIdFromUrl() : null;
+  // urlTrackId is already declared above
   const isDummy = isDummyTrack ?? (urlTrackId?.startsWith("dummy-") ?? false);
   const dummySong = urlTrackId ? POPULAR_SONGS.find(s => s.id === urlTrackId) : null;
 
   // Use store loading state directly.
   // The useEffect above sets loading to true on ID mismatch, 
   // and ClientHome sets it to false when data is loaded.
-  const showLoading = isLoadingLyrics;
+  // Also treat ID mismatch as loading to prevent flash of old content
+  const showLoading = isLoadingLyrics || isIdMismatch;
 
   if (showLoading) {
     return (
@@ -307,9 +319,19 @@ export default function LyricsView({
     if (displayLyrics.length > 0) {
       return (
         <div className="w-full px-4 py-8 bg-black text-white">
+          {/* Translating Overlay */}
+          {isTranslating && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-all duration-300">
+              <div className="bg-zinc-900 border border-zinc-700 text-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in-95">
+                <Loader2 className="w-10 h-10 text-[#1DB954] animate-spin" />
+                <p className="text-lg font-medium">{t.translating}</p>
+              </div>
+            </div>
+          )}
+
           <div className="max-w-3xl mx-auto space-y-8 pb-32">
             {/* Header Section */}
-            <div className="text-center pt-8 pb-4">
+            <div className="text-center pt-8 pb-4 relative">
               <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white">
                 {displayTitle}
               </h1>
@@ -412,6 +434,16 @@ export default function LyricsView({
       ref={containerRef}
       className="w-full px-4 py-8 bg-black text-white"
     >
+      {/* Translating Overlay */}
+      {isTranslating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-all duration-300">
+          <div className="bg-zinc-900 border border-zinc-700 text-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in-95">
+            <Loader2 className="w-10 h-10 text-[#1DB954] animate-spin" />
+            <p className="text-lg font-medium">{t.translating}</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-32 pt-12">
         {lyrics.map((line, index) => {
           const isActive = index === activeIndex;
