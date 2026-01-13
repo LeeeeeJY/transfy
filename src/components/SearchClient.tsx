@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Search, Loader2, TrendingUp } from 'lucide-react';
 import { searchTracksAction, getTopChartsAction, Track } from '@/app/actions/search';
 
@@ -148,13 +149,9 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
           ) : (
             <div className="flex flex-col gap-4">
               {topCharts.map((track, index) => (
-                <button
+                <Link
                   key={track.id}
-                  onClick={() => {
-                    const artistSlug = encodeURIComponent(track.artist);
-                    const titleSlug = encodeURIComponent(track.title);
-                    router.push(`/track/${artistSlug}/${titleSlug}`);
-                  }}
+                  href={`/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`}
                   className="flex items-center gap-4 bg-zinc-900/30 hover:bg-zinc-800 p-4 rounded-xl border border-zinc-800/30 hover:border-zinc-700 transition-all group text-left w-full cursor-pointer h-20 overflow-hidden"
                 >
                    {/* Rank */}
@@ -188,7 +185,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                       <path d="m9 18 6-6-6-6"/>
                     </svg>
                   </div>
-                </button>
+                </Link>
               ))}
             </div>
           )}
@@ -199,13 +196,9 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       {results.length > 0 && (
         <div className="flex flex-col gap-4"> {/* Changed to flex-col for better list view stability */}
           {results.map((track) => (
-            <button
+            <Link
               key={track.id}
-              onClick={() => {
-                const artistSlug = encodeURIComponent(track.artist);
-                const titleSlug = encodeURIComponent(track.title);
-                router.push(`/track/${artistSlug}/${titleSlug}`);
-              }}
+              href={`/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`}
               className="flex items-center gap-4 bg-zinc-900/50 hover:bg-zinc-800 p-4 rounded-xl border border-zinc-800/50 hover:border-zinc-700 transition-all group text-left w-full cursor-pointer h-24 overflow-hidden" // Added fixed height and overflow control
             >
               {/* Album Art */}
@@ -237,7 +230,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                   <path d="m9 18 6-6-6-6"/>
                 </svg>
               </div>
-            </button>
+            </Link>
           ))}
         </div>
       )}

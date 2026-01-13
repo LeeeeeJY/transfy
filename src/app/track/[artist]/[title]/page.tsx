@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { cache } from "react";
 import ClientHome from "@/components/ClientHome";
 import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
@@ -20,7 +21,7 @@ interface TrackInfo {
   syncedLyrics?: string | null; // LRC format
 }
 
-async function getTrackInfo(artistSlug: string, titleSlug: string): Promise<TrackInfo | null> {
+const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promise<TrackInfo | null> => {
   const artist = decodeTrackUrlParam(artistSlug);
   const title = decodeTrackUrlParam(titleSlug);
   const lang = await getLanguageFromHeaders(); // Get user language preference
@@ -89,7 +90,7 @@ async function getTrackInfo(artistSlug: string, titleSlug: string): Promise<Trac
     console.error("Error fetching track info:", e);
     return null;
   }
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { artist, title } = await params;
