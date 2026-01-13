@@ -53,14 +53,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const track = await getTrackDetails(id);
+  const dummySong = POPULAR_SONGS.find(s => s.id === id);
 
   if (track) {
+    const description = dummySong?.lyrics
+      ? `${track.name} by ${track.artistName} - Full lyrics with real-time translation. ${dummySong.lyrics.substring(0, 150)}...`
+      : `Complete lyrics and translation for ${track.name} by ${track.artistName}. Real-time synchronized lyrics translation in Korean, English, Japanese, and Chinese.`;
+
     return {
       title: `${track.name} - ${track.artistName} | Transfy`,
-      description: `Lyrics and translation for ${track.name} by ${track.artistName}.`,
+      description,
+      keywords: [
+        `${track.name} lyrics`,
+        `${track.artistName} lyrics`,
+        `${track.name} translation`,
+        `${track.name} 가사`,
+        `${track.artistName} 가사`,
+        "lyrics translation",
+        "real-time lyrics",
+      ],
       openGraph: {
         title: `${track.name} - ${track.artistName} Lyrics Translation`,
-        description: `Real-time lyrics translation for ${track.name}`,
+        description: `Real-time lyrics translation for ${track.name} by ${track.artistName}`,
         images: [
           {
             url: track.artwork?.url
@@ -70,6 +84,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             height: 630,
           },
         ],
+        type: "website",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `${track.name} - ${track.artistName} Lyrics`,
+        description: `Complete lyrics and translation for ${track.name}`,
       },
     };
   }
@@ -96,13 +116,61 @@ export default async function LyricPage({ params }: Props) {
   const initialIp = await getClientIp();
   const isDummyTrack = id.startsWith("dummy-");
 
+  const track = await getTrackDetails(id);
+  const dummySong = POPULAR_SONGS.find(s => s.id === id);
+
+  // Generate structured data for SEO and AdSense approval
+  const structuredData = track ? {
+    "@context": "https://schema.org",
+    "@type": "MusicRecording",
+    "name": track.name,
+    "byArtist": {
+      "@type": "MusicGroup",
+      "name": track.artistName,
+    },
+    "image": track.artwork?.url,
+    "description": `Lyrics and translation for ${track.name} by ${track.artistName}`,
+    "inLanguage": ["ko", "en", "ja", "zh"],
+    "url": `https://transfy-wine.vercel.app/lyric/${id}`,
+  } : (dummySong ? {
+    "@context": "https://schema.org",
+    "@type": "MusicRecording",
+    "name": dummySong.title,
+    "byArtist": {
+      "@type": "MusicGroup",
+      "name": dummySong.artist,
+    },
+    "image": dummySong.albumArt,
+    "description": `Lyrics and translation for ${dummySong.title} by ${dummySong.artist}`,
+    "inLanguage": ["ko", "en", "ja", "zh"],
+    "url": `https://transfy-wine.vercel.app/lyric/${id}`,
+  } : null);
+
   return (
-    <ClientHome
-      initialLang={initialLang}
-      initialCountry={initialCountry}
-      initialIp={initialIp}
-      isLyricPageInitial={true}
-      isDummyTrack={isDummyTrack}
-    />
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
+      )}
+      {/* Server-side rendered content for SEO - ensures content is always visible */}
+      {dummySong && (
+        <div className="sr-only">
+          <h1>{dummySong.title} - {dummySong.artist}</h1>
+          <p>Complete lyrics and translation for {dummySong.title} by {dummySong.artist}</p>
+          {dummySong.lyrics && <div>{dummySong.lyrics}</div>}
+        </div>
+      )}
+      <ClientHome
+        initialLang={initialLang}
+        initialCountry={initialCountry}
+        initialIp={initialIp}
+        isLyricPageInitial={true}
+        isDummyTrack={isDummyTrack}
+      />
+    </>
   );
 }

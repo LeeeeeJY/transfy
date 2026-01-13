@@ -1,21 +1,23 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
 import PlayerControls from "@/components/PlayerControls";
 import AdSense from "@/components/AdSense";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 import { useState, useEffect, useRef } from "react";
-import { Sparkles } from "lucide-react";
-import { usePlayerStore } from "@/store/usePlayerStore";
+import { Sparkles, Search, LogIn, LogOut } from "lucide-react";
+import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
 import { useRouter } from "next/navigation";
+import { POPULAR_SONGS } from "@/data/dummySongs";
+import { encodeTrackUrl } from "@/lib/utils";
 
 const UI_TEXT = {
   ko: {
     subtitle: "실시간 가사 번역 서비스",
     loginSpotify: "Spotify로 로그인",
-    guestMode: "로그인 없이 체험하기",
+    searchSongs: "노래 검색하기",
     permissionNotice:
       "로그인하면 현재 재생 중인 음악 정보를 읽어올 수 있는 권한을 요청합니다.",
     adDesktop: "광고 영역 (데스크탑)",
@@ -34,7 +36,7 @@ const UI_TEXT = {
       "고급 캐싱 기술과 최적화된 번역 API로 끊김 없는 경험을 제공합니다.",
 
     howItWorks: "사용 방법",
-    step1: "원하는 음악 서비스로 로그인하세요.",
+    step1: "Spotify 계정으로 로그인하세요.",
     step2: "앱(모바일 또는 데스크탑)에서 노래를 재생하세요.",
     step3: "Transfy가 자동으로 가사를 띄우고 실시간으로 번역해 줍니다.",
     step4: "가사의 의미를 이해하며 음악을 더 깊이 즐겨보세요!",
@@ -48,7 +50,6 @@ const UI_TEXT = {
       "네! 프리미엄이든 무료 계정이든 노래만 재생되면 작동합니다.",
 
     servicePreparing: "서비스 준비 중입니다.",
-    loginApple: "Apple Music으로 로그인",
 
     // SEO Content (Korean)
     seoTitle: "전 세계를 잇는 음악 경험",
@@ -66,7 +67,7 @@ const UI_TEXT = {
   en: {
     subtitle: "Realtime lyrics translation service",
     loginSpotify: "Sign in with Spotify",
-    guestMode: "Try without logging in",
+    searchSongs: "Search Songs",
     permissionNotice:
       "When you sign in, we request permission to read your current playback information.",
     adDesktop: "Ad space (desktop)",
@@ -84,7 +85,7 @@ const UI_TEXT = {
       "Powered by advanced caching and optimized translation APIs for zero lag.",
 
     howItWorks: "How it works",
-    step1: "Log in with your music service account.",
+    step1: "Log in with your Spotify account.",
     step2: "Play any song on your app (Mobile or Desktop).",
     step3:
       "Transfy will automatically display the lyrics and translate them in real-time.",
@@ -99,7 +100,6 @@ const UI_TEXT = {
       "Yes! Whether you have Premium or Free, as long as you are playing music, it works.",
 
     servicePreparing: "Service is preparing.",
-    loginApple: "Sign in with Apple Music",
 
     // SEO Content (English)
     seoTitle: "Global Music Experience",
@@ -117,7 +117,7 @@ const UI_TEXT = {
   ja: {
     subtitle: "リアルタイム歌詞翻訳サービス",
     loginSpotify: "Spotifyでログイン",
-    guestMode: "ログインせずに試す",
+    searchSongs: "曲を検索",
     permissionNotice:
       "ログインすると、現在再生中の音楽情報を読み取る権限をリクエストします。",
     adDesktop: "広告エリア（デスクトップ）",
@@ -134,7 +134,7 @@ const UI_TEXT = {
       "高度なキャッシュ技術と最適化された翻訳APIにより、遅延のない体験を提供します。",
 
     howItWorks: "使い方",
-    step1: "お好みの音楽サービスでログインします。",
+    step1: "Spotifyアカウントでログインします。",
     step2: "アプリ（モバイルまたはデスクトップ）で曲を再生します。",
     step3: "Transfyが自動的に歌詞を表示し、リアルタイムで翻訳します。",
     step4: "歌詞の意味を理解しながら、音楽をもっと楽しみましょう！",
@@ -148,7 +148,6 @@ const UI_TEXT = {
       "はい！PremiumでもFreeでも、音楽が再生されていれば動作します。",
 
     servicePreparing: "サービス準備中です。",
-    loginApple: "Apple Musicでログイン",
 
     // SEO Content (Japanese)
     seoTitle: "世界をつなぐ音楽体験",
@@ -166,7 +165,7 @@ const UI_TEXT = {
   zh: {
     subtitle: "实时歌词翻译服务",
     loginSpotify: "使用 Spotify 登录",
-    guestMode: "无需登录体验",
+    searchSongs: "搜索歌曲",
     permissionNotice: "登录后，我们会请求读取您当前播放信息的权限。",
     adDesktop: "广告区域（桌面端）",
     titleDefault: "Transfy - 歌词翻译",
@@ -180,7 +179,7 @@ const UI_TEXT = {
     featureFastDesc: "由先进的缓存技术和优化的翻译 API 支持，以此实现零延迟。",
 
     howItWorks: "使用方法",
-    step1: "登录您的音乐服务帐户。",
+    step1: "登录您的 Spotify 帐户。",
     step2: "在您的应用（手机或电脑）上播放任何歌曲。",
     step3: "Transfy 将自动显示歌词并实时翻译。",
     step4: "更深入地理解歌词，享受音乐！",
@@ -193,7 +192,6 @@ const UI_TEXT = {
       "可以！无论您是 Premium 还是免费用户，只要在播放音乐，就可以使用。",
 
     servicePreparing: "服务准备中。",
-    loginApple: "使用 Apple Music 登录",
 
     // SEO Content (Chinese)
     seoTitle: "连接全球的音乐体验",
@@ -210,16 +208,22 @@ const UI_TEXT = {
   },
 } as const;
 
+interface TrackInfo {
+  title: string;
+  artist: string;
+  albumArt: string;
+  lyrics: string | null;
+  syncedLyrics?: string | null;
+}
+
 interface ClientHomeProps {
   initialLang: "ko" | "en" | "ja" | "zh";
   initialCountry: string;
   initialIp: string;
   isLyricPageInitial?: boolean;
   isDummyTrack?: boolean;
+  initialTrack?: TrackInfo;
 }
-
-// Global flag removed in favor of store state
-// let isStoreInitialized = false;
 
 export default function ClientHome({
   initialLang,
@@ -227,21 +231,16 @@ export default function ClientHome({
   initialIp,
   isLyricPageInitial = false,
   isDummyTrack = false,
+  initialTrack,
 }: ClientHomeProps) {
   const { data: session } = useSession();
   const [isGuestMode, setIsGuestMode] = useState(false);
   const initialized = useRef(false);
-  // Using store state for redirect tracking
   const { isInitialized } = usePlayerStore();
-
-  // Add state to track if we are on a lyric page to prevent flashing
   const [isLyricPage, setIsLyricPage] = useState(isLyricPageInitial);
 
-  // Initialize store with server values in useEffect to avoid render-phase updates
-  // We use store's isInitialized to ensure we only do this once per SPA session
   useEffect(() => {
     if (!initialized.current) {
-      // Only set initial values if not already initialized (persisted in store)
       if (!isInitialized) {
         usePlayerStore.setState({
           targetLanguage: initialLang,
@@ -255,21 +254,43 @@ export default function ClientHome({
     }
   }, [initialLang, initialCountry, initialIp, isInitialized]);
 
-  // CRITICAL: During SSR/Hydration, we MUST use initialLang to match server HTML.
-  // We now use initialLang ALWAYS for UI text, so changing translation language doesn't change app UI.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Handle Initial Track Data for Lyric Pages
+  useEffect(() => {
+    if (initialTrack && isLyricPageInitial) {
+      // Split plain lyrics by newline and convert to LyricsLine format
+      // In future, we should use syncedLyrics for better experience
+      const lyricsText = initialTrack.lyrics || "Lyrics not found.";
+      const lyricsLines = lyricsText.split('\n');
+      const lyricsArray: LyricsLine[] = lyricsLines
+        .filter(line => line.trim().length > 0) // Remove empty lines
+        .map((line, index) => ({
+          id: `line-${index}`,
+          time: index * 3000, // 3 seconds per line (approximate)
+          text: line.trim(),
+        }));
+
+      usePlayerStore.setState({
+        title: initialTrack.title,
+        artist: initialTrack.artist,
+        albumArt: initialTrack.albumArt,
+        lyrics: lyricsArray,
+        isPlaying: false, // It's static view initially
+        provider: "none",
+        isInitialized: true
+      });
+    }
+  }, [initialTrack, isLyricPageInitial]);
+
   const _unusedTargetLang = usePlayerStore((state) => state.targetLanguage);
   const uiLang = initialLang;
-
   const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
-  // Initialize Poller (only active when logged in)
   useSpotifyPoller();
 
   const { title, artist, isPlaying, trackId, provider } = usePlayerStore();
   const router = useRouter();
 
-  // Centralized Navigation Logic
+  // Navigation Logic
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -277,67 +298,28 @@ export default function ClientHome({
     const storageKey = "transfy_redirected_track";
     const lastAutoRedirectId = sessionStorage.getItem(storageKey);
 
-    // Case 1: Music is playing and it's not a dummy track (or it IS a dummy track, we treat them same for nav)
     if (isPlaying && trackId) {
-      // 1. If we are on the generic /lyric page, we ALWAYS want to go to the specific track page
-      //    We use REPLACE here so Back button skips the generic page.
+      // If playing, enforce track page but prevent loops
       if (currentPath === "/lyric" || currentPath === "/lyric/") {
-        sessionStorage.setItem(storageKey, trackId);
-        router.replace(`/lyric/${trackId}`);
+        if (title && artist) {
+          router.replace(encodeTrackUrl(artist, title));
+        }
         return;
       }
 
-      // 2. If we are on Home page or a WRONG lyric page
-      const isWrongLyricPage =
-        currentPath.startsWith("/lyric/") && !currentPath.includes(trackId);
-      const isLandingPage = currentPath === "/";
-
-      if (isWrongLyricPage || isLandingPage) {
-        // Only redirect if we haven't already redirected for this specific track
-        // This allows the user to go Back to Home and stay there without being kidnapped again
-        if (lastAutoRedirectId !== trackId) {
+      // If on landing page
+      if (currentPath === "/") {
+        if (lastAutoRedirectId !== trackId && title && artist) {
           sessionStorage.setItem(storageKey, trackId);
-          router.push(`/lyric/${trackId}`);
-        }
-      }
-
-      // 3. If we are already on the correct page, sync the storage just in case
-      else if (currentPath.includes(trackId)) {
-        if (lastAutoRedirectId !== trackId) {
-          sessionStorage.setItem(storageKey, trackId);
+          router.push(encodeTrackUrl(artist, title));
         }
       }
     }
-    // Case 2: Music is NOT playing
-    else {
-      // If we are on a specific lyric page but nothing is playing
-      // AND it's not the initial loading phase of a dummy track (which might briefly have no provider/playing state)
-      // We check provider !== 'none' to allow some grace period, but specific dummy check is better.
-      const isInitialDummyLoad = isDummyTrack && provider === "none";
+  }, [isPlaying, trackId, router, title, artist]);
 
-      if (!isInitialDummyLoad) {
-        // If on a specific lyric page (e.g. /lyric/123) and stopped, go to generic /lyric
-        if (
-          currentPath.startsWith("/lyric/") &&
-          currentPath.length > "/lyric/".length
-        ) {
-          router.replace("/lyric");
-        }
-      }
-    }
-  }, [
-    isPlaying,
-    trackId,
-    router,
-    isDummyTrack,
-    provider,
-    session,
-    isGuestMode,
-  ]);
-
-  // If session is lost (e.g. NextAuth logout), reset store to prevent state pollution
+  // Reset store on logout
   useEffect(() => {
-    if (!session && provider !== "test" && provider !== "none") {
+    if (!session && provider !== "test" && provider !== "none" && !initialTrack) {
       usePlayerStore.setState({
         isPlaying: false,
         title: "",
@@ -350,24 +332,21 @@ export default function ClientHome({
       });
       sessionStorage.removeItem("transfy_redirected_track");
     }
-  }, [session, provider]);
+  }, [session, provider, initialTrack]);
 
-  // If session exists or we are on lyric page, we might want guest mode equivalent
+  // Guest mode logic for lyric pages
   useEffect(() => {
-    // Check if we are on a lyric page and should be in "Guest Mode" (player view)
     if (
       typeof window !== "undefined" &&
-      window.location.pathname.startsWith("/lyric") &&
+      window.location.pathname.startsWith("/track") &&
       !session
     ) {
-      // Use setTimeout to avoid synchronous state update in effect
       setTimeout(() => setIsGuestMode(true), 0);
     }
   }, [session]);
 
-  // Dynamic Title Update
+  // Dynamic Title
   useEffect(() => {
-    // Only update title if we have valid info
     if (
       (session || isGuestMode || provider === "test") &&
       isPlaying &&
@@ -376,30 +355,17 @@ export default function ClientHome({
     ) {
       document.title = `${title} - ${artist} | Transfy`;
     } else {
-      // Only reset to default if we are NOT on a lyric page (to avoid overwriting server metadata unnecessarily)
-      // But if we are playing nothing, maybe we should?
-      // Let's stick to default behavior but ensure 'test' provider is covered.
       if (!isPlaying) {
-        document.title = t.titleDefault;
+        // Removed explicit document.title assignment here to let Next.js Metadata handle it
       }
     }
-  }, [
-    session,
-    isGuestMode,
-    isPlaying,
-    title,
-    artist,
-    t.titleDefault,
-    provider,
-  ]);
+  }, [session, isGuestMode, isPlaying, title, artist, t.titleDefault, provider]);
 
-  // Show home UI only if not logged in, not in guest mode, AND not on a lyric page
   if (!session && !isGuestMode && !isLyricPage) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-br from-green-500 to-black text-white">
-        <div className="max-w-md w-full text-center space-y-8">
+      <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-black text-white">
+        <div className="max-w-md w-full text-center space-y-8 mt-16">
           <div>
-            {/* Logo */}
             <div className="flex justify-center mb-6">
               <Link href="/" className="hover:opacity-90 transition-opacity">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -418,7 +384,7 @@ export default function ClientHome({
           <div className="space-y-4">
             <button
               onClick={() => alert(t.servicePreparing)}
-              className="w-full flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg"
+              className="w-full flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
@@ -427,81 +393,43 @@ export default function ClientHome({
             </button>
 
             <button
-              onClick={() => alert(t.servicePreparing)}
-              className="w-full flex items-center justify-center gap-3 bg-red-500 hover:bg-red-600 text-white font-medium py-4 px-6 rounded-full transition-all border border-red-400"
+              onClick={() => router.push("/search")}
+              className="w-full flex items-center justify-center gap-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-4 px-6 rounded-full transition-all border border-zinc-700 cursor-pointer"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15.04 1.46C14.28 1.46 13.56 1.83 13.06 2.44C12.56 3.05 12.28 3.86 12.28 4.66C12.28 4.7 12.28 4.73 12.28 4.77C13.12 4.72 13.88 4.31 14.39 3.67C14.89 3.03 15.15 2.22 15.04 1.46M12.03 4.98C10.87 5.06 9.71 4.4 9.11 4.4C8.5 4.4 7.56 5.09 6.55 5.09C4.04 5.09 1.86 8.5 1.86 11.58C1.86 13.91 3.5 17.5 5.57 17.5C6.35 17.5 6.64 17.06 7.82 17.06C9 17.06 9.24 17.5 10.07 17.5C12.19 17.5 13.79 14.07 13.79 11.66C13.79 11.61 13.79 11.56 13.79 11.51C12.72 11.05 12 10 12 8.79C12 7.15 13.34 5.82 14.98 5.82C15.09 5.82 15.2 5.83 15.31 5.84C14.71 4.79 13.52 4.26 12.44 4.26C12.3 4.26 12.16 4.27 12.03 4.28V4.98Z" />
-              </svg>
-              {t.loginApple}
+              <Search className="w-5 h-5 text-gray-400" />
+              {t.searchSongs}
             </button>
-
-            <button
-              onClick={() => router.push("/charts")}
-              className="w-full flex items-center justify-center gap-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-4 px-6 rounded-full transition-all border border-zinc-700"
-            >
-              <Sparkles className="w-5 h-5 text-yellow-400" />
-              {t.guestMode}
-            </button>
-
-            <div className="pt-4 text-center">
-              <p className="text-sm text-white/60 mb-3">Popular Lyrics</p>
-              <div className="flex gap-3 justify-center">
-                <Link href="/lyric/dummy-eminem" className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors">
-                  Eminem - Lose Yourself
-                </Link>
-                <Link href="/lyric/dummy-yoasobi" className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors">
-                  YOASOBI - Idol
-                </Link>
-              </div>
-            </div>
           </div>
 
           <div className="mt-8 text-xs text-white/50">{t.permissionNotice}</div>
         </div>
 
-        {/* Content Section for AdSense Approval & SEO */}
         <div className="max-w-4xl w-full mt-24 text-left space-y-16 pb-20">
-          {/* Features */}
           <section className="space-y-6">
-            <h2 className="text-3xl font-bold text-center mb-12">
-              {t.whyTransfy}
-            </h2>
+            <h2 className="text-3xl font-bold text-center mb-12">{t.whyTransfy}</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">🎵</div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {t.featureSyncTitle}
-                </h3>
+                <h3 className="text-xl font-semibold mb-2">{t.featureSyncTitle}</h3>
                 <p className="text-white/70">{t.featureSyncDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">🌏</div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {t.featureMultiTitle}
-                </h3>
+                <h3 className="text-xl font-semibold mb-2">{t.featureMultiTitle}</h3>
                 <p className="text-white/70">{t.featureMultiDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">⚡</div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {t.featureFastTitle}
-                </h3>
+                <h3 className="text-xl font-semibold mb-2">{t.featureFastTitle}</h3>
                 <p className="text-white/70">{t.featureFastDesc}</p>
               </div>
             </div>
           </section>
 
-          {/* AdSense Unit 1 */}
           <div className="w-full flex justify-center py-4">
-            <AdSense
-              className="w-full rounded-xl"
-              style={{ display: "block", minHeight: "100px", width: "100%" }}
-              format="auto"
-            />
+            {/* Ad Removed */}
           </div>
 
-          {/* How it works */}
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.howItWorks}</h2>
             <ol className="list-decimal list-inside space-y-4 text-lg text-white/80">
@@ -512,16 +440,10 @@ export default function ClientHome({
             </ol>
           </section>
 
-          {/* AdSense Unit 2 */}
           <div className="w-full flex justify-center py-4">
-            <AdSense
-              className="w-full rounded-xl"
-              style={{ display: "block", minHeight: "100px", width: "100%" }}
-              format="auto"
-            />
+            {/* Ad Removed */}
           </div>
 
-          {/* FAQ */}
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.faq}</h2>
             <div className="space-y-4">
@@ -530,24 +452,14 @@ export default function ClientHome({
                 <p className="text-white/70">{t.faqFreeDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-xl">
-                <h3 className="font-semibold text-lg mb-2">
-                  {t.faqSpotifyTitle}
-                </h3>
+                <h3 className="font-semibold text-lg mb-2">{t.faqSpotifyTitle}</h3>
                 <p className="text-white/70">{t.faqSpotifyDesc}</p>
               </div>
             </div>
           </section>
 
-          {/* AdSense Unit 3 - Text Content Ad */}
-          <div className="w-full flex justify-center py-4">
-            <AdSense
-              className="w-full rounded-xl"
-              style={{ display: "block", minHeight: "100px", width: "100%" }}
-              format="auto"
-            />
-          </div>
+          {/* Ad Removed from here - moved to Footer */}
 
-          {/* Additional SEO Content - Global Music Tech */}
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.seoTitle}</h2>
             <article className="prose prose-invert max-w-none text-white/80">
@@ -560,77 +472,41 @@ export default function ClientHome({
             </article>
           </section>
         </div>
-
-        {/* Footer */}
-        <footer className="w-full max-w-4xl border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-white/40 gap-4">
-          <p>
-            &copy; {new Date().getFullYear()} {t.footerRights}
-          </p>
-          <div className="flex gap-6">
-            <Link href="/terms" className="hover:text-white transition-colors">
-              {t.footerTerms}
-            </Link>
-            <Link
-              href="/privacy"
-              className="hover:text-white transition-colors"
-            >
-              {t.footerPrivacy}
-            </Link>
-          </div>
-        </footer>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-white dark:bg-black text-black dark:text-white overflow-hidden">
-      {/* Main Content Area - Grow to fill space */}
-      <main className="flex-1 relative overflow-hidden w-full">
-        {/* Lyrics Area - Handles its own scroll */}
+    <div className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden">
+      <main className="flex-1 relative overflow-hidden w-full pt-14">
         <div className="absolute inset-0">
-          <LyricsView
-            initialUiLanguage={initialLang}
-            isDummyTrack={isDummyTrack}
-          />
+          <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
         </div>
       </main>
 
-      {/* Floating Sidebar Ad - Fixed position, out of flow */}
       <div className="fixed top-20 right-4 z-40 hidden xl:block w-[300px] pointer-events-none">
-        {/* Pointer events auto for ad itself */}
-        <div className="pointer-events-auto">
-          <AdSense
-            className="w-full rounded-lg shadow-sm"
-            style={{ width: "300px", height: "600px" }}
-            format="vertical"
-          />
-        </div>
+        {/* Right Sidebar Ad Removed */}
       </div>
 
-      {/* Bottom Ad Area - Fixed height to prevent layout shift */}
-      <div className="shrink-0 w-full z-10 bg-white dark:bg-black pb-[80px]">
-        <AdSense style={{ minHeight: "90px" }} />
-      </div>
+      {/* Bottom Ad Removed */}
 
-      {/* Controls - Fixed at bottom */}
       <PlayerControls
         onLogout={
           isGuestMode
             ? () => {
               setIsGuestMode(false);
-              // Reset player state completely
               usePlayerStore.setState({
                 isPlaying: false,
                 title: "",
                 artist: "",
                 albumArt: "",
                 trackId: null,
-                lyrics: [], // Clear lyrics to show selection screen again
+                lyrics: [],
                 progressMs: 0,
                 provider: "none",
               });
               sessionStorage.removeItem("transfy_redirected_track");
-              setIsLyricPage(false); // Reset lyric page state
+              setIsLyricPage(false);
               router.push("/");
             }
             : undefined

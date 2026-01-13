@@ -24,8 +24,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://transfy-wine.vercel.app"),
   title: {
-    default: "Transfy - Spotify Lyrics Translator",
-    template: "%s | Transfy",
+    default: "Transfy | 실시간 가사 번역",
+    template: "%s | Transfy", // This template adds " | Transfy" to child pages
   },
   description: "스포티파이 노래 가사를 실시간으로 동기화하여 한국어, 영어, 일본어, 중국어로 번역해주는 서비스입니다. 가사 해석과 함께 음악을 즐겨보세요.",
   keywords: [
@@ -79,6 +79,9 @@ export const metadata: Metadata = {
   },
 };
 
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -123,10 +126,14 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen flex flex-col`}
       >
         <Providers>
-          {children}
+          <Header />
+          <div className="pt-14 flex-1 flex flex-col">
+            {children}
+          </div>
+          <Footer />
         </Providers>
       </body>
     </html>
