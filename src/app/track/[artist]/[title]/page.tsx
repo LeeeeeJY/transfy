@@ -178,6 +178,9 @@ export default async function TrackPage({ params }: Props) {
         isLyricPageInitial={true}
         // Pass the fetched track info to ClientHome
         initialTrack={{
+          // Generate ID based on URL parameters to ensure it matches client-side URL parsing
+          // This prevents "ID Mismatch" errors when API returns different artist name (e.g. BTS vs 방탄소년단)
+          id: `static-${decodedArtist}-${decodedTitle}`.replace(/\s+/g, '-').toLowerCase(),
           title: trackInfo?.title || decodedTitle,
           artist: trackInfo?.artist || decodedArtist,
           albumArt: trackInfo?.albumArt || "",

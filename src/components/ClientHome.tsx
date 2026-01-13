@@ -209,6 +209,7 @@ const UI_TEXT = {
 } as const;
 
 interface TrackInfo {
+  id?: string; // Optional URL-based ID to prevent mismatch
   title: string;
   artist: string;
   albumArt: string;
@@ -270,7 +271,8 @@ export default function ClientHome({
           isPlaying: false, // It's static view initially
           provider: "none",
           isInitialized: true,
-          trackId: `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(), // Ensure unique ID even for empty lyrics
+          // Use provided ID (from URL) if available
+          trackId: initialTrack.id || `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(),
           isLoadingLyrics: false // Loading finished, but no lyrics
         });
         return;
@@ -293,7 +295,8 @@ export default function ClientHome({
         isPlaying: false, // It's static view initially
         provider: "none",
         isInitialized: true,
-        trackId: `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(), // Ensure unique ID for this track
+        // Use provided ID (from URL) if available, otherwise fallback to generating one
+        trackId: initialTrack.id || `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(),
         isLoadingLyrics: false // Loading finished
       });
     }
