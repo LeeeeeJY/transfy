@@ -8,7 +8,7 @@
     - 실시간 재생 정보 연동 (Polling / MusicKit JS)
     - 실시간 싱크 가사 (Synced Lyrics) 표시 및 자동 스크롤
     - 구글 번역 API를 이용한 다국어 가사 번역
-    - 반응형 웹 디자인 (Mobile/Desktop) 및 광고(AdSense) 수익 모델
+    - 반응형 웹 디자인 (Mobile/Desktop)
 
 ## 2. 기술 스택 (Tech Stack)
 - **Frontend Framework**: Next.js 16 (App Router)
@@ -54,7 +54,6 @@ src/
 ├── components/
 │   ├── LyricsView.tsx  # 가사 뷰어 (자동 스크롤)
 │   ├── PlayerControls.tsx # 하단 컨트롤바 (언어 설정 등)
-│   └── AdSense.tsx     # 구글 애드센스 컴포넌트
 ├── hooks/
 │   ├── useAppleMusic.ts    # 애플 뮤직 연동 훅
 │   ├── useLyricsFetcher.ts # 가사 검색 및 번역 로직

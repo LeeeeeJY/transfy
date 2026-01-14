@@ -20,8 +20,6 @@ const PRIVACY_TEXT = {
       "서비스 사용량 모니터링",
       "기술적 문제 감지, 예방 및 해결"
     ],
-    thirdPartyTitle: "3. 제3자 서비스",
-    thirdPartyDesc: "당사는 광고 표시를 위해 Google AdSense를 사용합니다. Google은 귀하의 당사 웹사이트 또는 다른 웹사이트 방문 기록을 기반으로 광고를 제공하기 위해 쿠키를 사용할 수 있습니다. Google 광고 설정에서 개인화된 광고를 선택 해제할 수 있습니다.",
     back: "← 홈으로 돌아가기",
   },
   en: {
@@ -41,8 +39,6 @@ const PRIVACY_TEXT = {
       "Monitor the usage of our Service.",
       "Detect, prevent and address technical issues."
     ],
-    thirdPartyTitle: "3. Third-Party Services",
-    thirdPartyDesc: "We use Google AdSense to display ads. Google may use cookies to serve ads based on your prior visits to our website or other websites. You may opt out of personalized advertising by visiting Google Ads Settings.",
     back: "← Back to Home",
   },
 };
@@ -81,11 +77,6 @@ export default async function PrivacyPage() {
               <li key={i}>{item}</li>
             ))}
           </ul>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t.thirdPartyTitle}</h2>
-          <p className="text-zinc-400">{t.thirdPartyDesc}</p>
         </section>
 
         <div className="pt-8 border-t border-zinc-800">

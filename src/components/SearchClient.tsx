@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Loader2, TrendingUp } from 'lucide-react';
 import { searchTracksAction, getTopChartsAction, Track } from '@/app/actions/search';
+import { encodeTrackUrl } from '@/lib/utils';
 
 interface SearchClientProps {
   initialLang: string;
@@ -12,7 +13,10 @@ interface SearchClientProps {
 
 export default function SearchClient({ initialLang }: SearchClientProps) {
   const router = useRouter();
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Track[]>([]);
   const [topCharts, setTopCharts] = useState<Track[]>([]); // New state for top charts
   const [loading, setLoading] = useState(false);
@@ -42,6 +46,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     if (!term.trim()) {
       setResults([]);
       setHasSearched(false);
+      router.push('/search');
       return;
     }
 
@@ -50,16 +55,71 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     setHasSearched(true); // Mark search as started
 
     try {
-      // Pass the language to the server action
-      const data = await searchTracksAction(term, initialLang);
-      setResults(data);
+      // Update URL with search term
+      router.push(`/search?q=${encodeURIComponent(term)}`);
     } catch (err) {
       console.error(err);
-      setError('Failed to search tracks. Please try again.');
+      setError('Failed to update URL.');
     } finally {
-      setLoading(false);
+      // The actual fetching is handled by the useEffect on initialQuery
+      // We don't set loading here because the useEffect will trigger and set loading
     }
-  }, [initialLang]); // Added initialLang dependency
+  }, [router]); // Removed initialLang dependency as it's not used directly here anymore
+
+  // Handle URL Query Changes (Fetching & Caching)
+  useEffect(() => {
+    if (!initialQuery) {
+      setResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    const fetchResults = async () => {
+      // 1. Try Cache
+      try {
+        const cached = sessionStorage.getItem('transfy_search_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.term === initialQuery) {
+            setResults(parsed.results);
+            setHasSearched(true);
+            return;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // 2. Fetch from API
+      setLoading(true);
+      setError(null);
+      setHasSearched(true);
+
+      try {
+        const data = await searchTracksAction(initialQuery, initialLang);
+        setResults(data);
+
+        // 3. Save to Cache
+        sessionStorage.setItem('transfy_search_cache', JSON.stringify({
+          term: initialQuery,
+          results: data,
+          timestamp: Date.now()
+        }));
+      } catch (err) {
+        console.error(err);
+        setError('Failed to search tracks. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, [initialQuery, initialLang]);
+
+  // Sync input with URL query
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -73,7 +133,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       handleSearch(query);
     }
   };
-  
+
   const handleSearchClick = () => {
     handleSearch(query);
   };
@@ -88,7 +148,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
           <div className="absolute left-4 pointer-events-none">
             <Search className="w-5 h-5 text-zinc-400" />
           </div>
-          
+
           <input
             type="text"
             value={query}
@@ -96,14 +156,13 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
             onKeyDown={handleKeyDown}
             placeholder={
               initialLang === 'ko' ? "노래 제목, 아티스트 검색..." :
-              initialLang === 'ja' ? "曲名、アーティストを検索..." :
-              initialLang === 'zh' ? "搜索歌曲、艺术家..." :
-              "Search for songs, artists..."
+                initialLang === 'ja' ? "曲名、アーティストを検索..." :
+                  initialLang === 'zh' ? "搜索歌曲、艺术家..." :
+                    "Search for songs, artists..."
             }
             className="w-full bg-zinc-900 text-white placeholder-zinc-500 rounded-lg pl-12 pr-20 py-4 focus:outline-none focus:ring-2 focus:ring-green-500/50 border border-zinc-800 transition-all"
-            autoFocus
           />
-          
+
           <div className="absolute right-2 flex items-center gap-2">
             <button
               onClick={handleSearchClick}
@@ -113,9 +172,9 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               {loading && <Loader2 className="w-4 h-4 text-green-500 animate-spin" />}
               {
                 initialLang === 'ko' ? "검색" :
-                initialLang === 'ja' ? "検索" :
-                initialLang === 'zh' ? "搜索" :
-                "Search"
+                  initialLang === 'ja' ? "検索" :
+                    initialLang === 'zh' ? "搜索" :
+                      "Search"
               }
             </button>
           </div>
@@ -135,10 +194,10 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
           <div className="flex items-center gap-2 text-white/80 pb-2 border-b border-zinc-800">
             <TrendingUp className="w-5 h-5 text-green-500" />
             <h2 className="text-lg font-bold">
-              {initialLang === 'ko' ? "지금 뜨는 인기곡" : 
-               initialLang === 'ja' ? "今の人気曲" :
-               initialLang === 'zh' ? "热门歌曲" :
-               "Top Charts"}
+              {initialLang === 'ko' ? "지금 뜨는 인기곡" :
+                initialLang === 'ja' ? "今の人気曲" :
+                  initialLang === 'zh' ? "热门歌曲" :
+                    "Top Charts"}
             </h2>
           </div>
 
@@ -151,10 +210,10 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               {topCharts.map((track, index) => (
                 <Link
                   key={track.id}
-                  href={`/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`}
+                  href={encodeTrackUrl(track.artist, track.title)}
                   className="flex items-center gap-4 bg-zinc-900/30 hover:bg-zinc-800 p-4 rounded-xl border border-zinc-800/30 hover:border-zinc-700 transition-all group text-left w-full cursor-pointer h-20 overflow-hidden"
                 >
-                   {/* Rank */}
+                  {/* Rank */}
                   <div className="w-8 text-center text-lg font-bold text-zinc-500 group-hover:text-green-500 transition-colors italic">
                     {index + 1}
                   </div>
@@ -182,7 +241,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                   {/* Arrow Icon */}
                   <div className="text-zinc-600 group-hover:text-white transition-colors shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right w-5 h-5">
-                      <path d="m9 18 6-6-6-6"/>
+                      <path d="m9 18 6-6-6-6" />
                     </svg>
                   </div>
                 </Link>
@@ -227,7 +286,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               {/* Arrow Icon */}
               <div className="text-zinc-600 group-hover:text-white transition-colors shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right w-5 h-5">
-                  <path d="m9 18 6-6-6-6"/>
+                  <path d="m9 18 6-6-6-6" />
                 </svg>
               </div>
             </Link>

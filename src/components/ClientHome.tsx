@@ -4,7 +4,6 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
 import PlayerControls from "@/components/PlayerControls";
-import AdSense from "@/components/AdSense";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Search, LogIn, LogOut } from "lucide-react";
@@ -20,7 +19,6 @@ const UI_TEXT = {
     searchSongs: "노래 검색하기",
     permissionNotice:
       "로그인하면 현재 재생 중인 음악 정보를 읽어올 수 있는 권한을 요청합니다.",
-    adDesktop: "광고 영역 (데스크탑)",
     titleDefault: "Transfy - 실시간 가사 번역기",
 
     // Landing Content
@@ -44,7 +42,7 @@ const UI_TEXT = {
     faq: "자주 묻는 질문",
     faqFreeTitle: "무료인가요?",
     faqFreeDesc:
-      "네, Transfy는 완전히 무료입니다. 서버 비용 충당을 위해 광고를 표시하고 있습니다.",
+      "네, Transfy는 완전히 무료입니다. 개인 학습 목적으로 운영되는 비상업적 프로젝트입니다.",
     faqSpotifyTitle: "무료 계정도 되나요?",
     faqSpotifyDesc:
       "네! 프리미엄이든 무료 계정이든 노래만 재생되면 작동합니다.",
@@ -60,9 +58,10 @@ const UI_TEXT = {
     seoSubTitle2: "지원 언어",
     seoSubDesc2: "현재 한국어, 영어, 일본어, 중국어 간의 상호 번역을 지원합니다. 다양한 문화권의 사용자가 언어 장벽 없이 음악을 즐길 수 있도록, 지속적으로 언어를 추가하고 AI 모델을 고도화하고 있습니다.",
 
-    footerRights: "Transfy. All rights reserved.",
+    footerRights: "Transfy.",
     footerTerms: "이용약관",
     footerPrivacy: "개인정보처리방침",
+    disclaimer: "이 프로젝트는 교육 목적으로 제작된 비상업적 개인 프로젝트입니다. 가사 데이터는 LRCLIB에서 제공받으며, 모든 저작권은 원작자에게 있습니다.",
   },
   en: {
     subtitle: "Realtime lyrics translation service",
@@ -70,7 +69,6 @@ const UI_TEXT = {
     searchSongs: "Search Songs",
     permissionNotice:
       "When you sign in, we request permission to read your current playback information.",
-    adDesktop: "Ad space (desktop)",
     titleDefault: "Transfy - Lyrics Translator",
 
     whyTransfy: "Why Transfy?",
@@ -94,7 +92,7 @@ const UI_TEXT = {
     faq: "FAQ",
     faqFreeTitle: "Is it free?",
     faqFreeDesc:
-      "Yes, Transfy is completely free to use. We use ads to support the server costs.",
+      "Yes, Transfy is completely free to use. It is a non-commercial project for educational purposes.",
     faqSpotifyTitle: "Does it work with Free plans?",
     faqSpotifyDesc:
       "Yes! Whether you have Premium or Free, as long as you are playing music, it works.",
@@ -110,9 +108,10 @@ const UI_TEXT = {
     seoSubTitle2: "Supported Languages",
     seoSubDesc2: "Currently, Transfy supports translation between major global languages including Korean, English, Japanese, and Chinese. This coverage allows users from different cultural backgrounds to enjoy music from around the world without language barriers. We are continuously working to add more languages and improve translation accuracy through advanced AI models.",
 
-    footerRights: "Transfy. All rights reserved.",
+    footerRights: "Transfy.",
     footerTerms: "Terms of Service",
     footerPrivacy: "Privacy Policy",
+    disclaimer: "This is a non-commercial personal project for educational purposes only. Lyrics data provided by LRCLIB. All rights belong to their respective owners.",
   },
   ja: {
     subtitle: "リアルタイム歌詞翻訳サービス",
@@ -120,7 +119,6 @@ const UI_TEXT = {
     searchSongs: "曲を検索",
     permissionNotice:
       "ログインすると、現在再生中の音楽情報を読み取る権限をリクエストします。",
-    adDesktop: "広告エリア（デスクトップ）",
     titleDefault: "Transfy - 歌詞翻訳",
 
     whyTransfy: "Transfyを選ぶ理由",
@@ -142,7 +140,7 @@ const UI_TEXT = {
     faq: "よくある質問",
     faqFreeTitle: "無料ですか？",
     faqFreeDesc:
-      "はい、Transfyは完全に無料です。サーバー費用を賄うために広告を表示しています。",
+      "はい、Transfyは完全に無料です。個人の学習目的で運営される非営利プロジェクトです。",
     faqSpotifyTitle: "Freeプランでも使えますか？",
     faqSpotifyDesc:
       "はい！PremiumでもFreeでも、音楽が再生されていれば動作します。",
@@ -158,16 +156,16 @@ const UI_TEXT = {
     seoSubTitle2: "対応言語",
     seoSubDesc2: "現在、韓国語、英語、日本語、中国語間の相互翻訳に対応しています。様々な文化圏のユーザーが言葉の壁なく音楽を楽しめるよう、継続的に言語を追加しAIモデルを高度化しています。",
 
-    footerRights: "Transfy. All rights reserved.",
+    footerRights: "Transfy.",
     footerTerms: "利用規約",
     footerPrivacy: "プライバシーポリシー",
+    disclaimer: "このプロジェクトは教育目的で作成された非営利の個人プロジェクトです。歌詞データはLRCLIBから提供されており、すべての著作権は原作者に帰属します。",
   },
   zh: {
     subtitle: "实时歌词翻译服务",
     loginSpotify: "使用 Spotify 登录",
     searchSongs: "搜索歌曲",
     permissionNotice: "登录后，我们会请求读取您当前播放信息的权限。",
-    adDesktop: "广告区域（桌面端）",
     titleDefault: "Transfy - 歌词翻译",
 
     whyTransfy: "为什么选择 Transfy？",
@@ -186,7 +184,7 @@ const UI_TEXT = {
 
     faq: "常见问题",
     faqFreeTitle: "是免费的吗？",
-    faqFreeDesc: "是的，Transfy 完全免费。我们通过广告来支持服务器费用。",
+    faqFreeDesc: "是的，Transfy 完全免费。这是一个用于教育目的的非商业个人项目。",
     faqSpotifyTitle: "免费版能用吗？",
     faqSpotifyDesc:
       "可以！无论您是 Premium 还是免费用户，只要在播放音乐，就可以使用。",
@@ -202,9 +200,10 @@ const UI_TEXT = {
     seoSubTitle2: "支持语言",
     seoSubDesc2: "目前支持韩语、英语、日语和中文之间的相互翻译。为了让不同文化背景的用户都能无障碍地享受音乐，我们正在持续添加更多语言并优化 AI 模型。",
 
-    footerRights: "Transfy. All rights reserved.",
+    footerRights: "Transfy.",
     footerTerms: "服务条款",
     footerPrivacy: "隐私政策",
+    disclaimer: "本项目仅供教育目的使用的非商业个人项目。歌词数据由LRCLIB提供，所有权利属于原作者。",
   },
 } as const;
 
@@ -499,7 +498,7 @@ export default function ClientHome({
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
-      <main className="flex-1 w-full bg-black">
+      <main className="flex-1 w-full bg-black flex flex-col">
         <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
       </main>
 

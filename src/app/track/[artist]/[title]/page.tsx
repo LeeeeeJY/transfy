@@ -52,10 +52,38 @@ const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promis
     ]);
 
     // Find best match from iTunes
-    const trackMetadata = itunesTracks.find(t =>
-      t.artist.toLowerCase().includes(artist.toLowerCase()) ||
-      t.title.toLowerCase().includes(title.toLowerCase())
-    ) || itunesTracks[0];
+    // Filter candidates first
+    const candidates = itunesTracks.filter(t => {
+      const tArtist = t.artist.toLowerCase();
+      const tTitle = t.title.toLowerCase();
+      const searchArtist = artist.toLowerCase();
+      const searchTitle = title.toLowerCase();
+
+      return (
+        (tArtist.includes(searchArtist) || searchArtist.includes(tArtist)) &&
+        (tTitle.includes(searchTitle) || searchTitle.includes(tTitle))
+      );
+    });
+
+    // Sort candidates to find the best match
+    // Priority:
+    // 1. Exact Title Match
+    // 2. Shortest Title Length (prefer original over remixes)
+    candidates.sort((a, b) => {
+      const searchTitle = title.toLowerCase();
+      const aTitle = a.title.toLowerCase();
+      const bTitle = b.title.toLowerCase();
+
+      const aExact = aTitle === searchTitle;
+      const bExact = bTitle === searchTitle;
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      return aTitle.length - bTitle.length;
+    });
+
+    const trackMetadata = candidates[0];
 
     // If initial lyrics fetch failed, try again with iTunes metadata (which might have correct localized title)
     let finalLyrics = lrcData.plainLyrics;

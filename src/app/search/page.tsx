@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { Suspense } from 'react';
 import { getLanguageFromHeaders } from "@/lib/server-utils";
-import AdSense from "@/components/AdSense";
 import SearchClient from "@/components/SearchClient";
 
 export async function generateMetadata() {
@@ -47,9 +47,9 @@ export default async function SearchPage() {
         </div>
 
         {/* Client Component for Search Logic */}
-        <SearchClient initialLang={lang} />
-        
-        {/* Ad removed from here - moved to global Footer */}
+        <Suspense fallback={<div className="text-center">Loading...</div>}>
+          <SearchClient initialLang={lang} />
+        </Suspense>
       </div>
     </div>
   );

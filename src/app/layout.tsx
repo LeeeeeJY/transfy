@@ -87,8 +87,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adSenseId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-
   return (
     <html lang="ko">
       <head>
@@ -111,14 +109,6 @@ export default function RootLayout({
             }),
           }}
         />
-        {adSenseId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adSenseId}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
         <Script
           src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
           strategy="afterInteractive"

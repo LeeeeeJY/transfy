@@ -119,7 +119,7 @@ export default async function LyricPage({ params }: Props) {
   const track = await getTrackDetails(id);
   const dummySong = POPULAR_SONGS.find(s => s.id === id);
 
-  // Generate structured data for SEO and AdSense approval
+  // Generate structured data for SEO
   const structuredData = track ? {
     "@context": "https://schema.org",
     "@type": "MusicRecording",
