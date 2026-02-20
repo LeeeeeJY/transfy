@@ -22,35 +22,44 @@ export default function BottomPlayer() {
     targetLanguage,
     setTargetLanguage,
     showTranslation,
-    toggleTranslation
+    toggleTranslation,
+    isSdkReady,
+    player
   } = usePlayerStore();
 
   // Play/Pause Toggle
   const togglePlay = async () => {
     if (!session?.accessToken) return;
-    if (isPlaying) {
-      await pause(session.accessToken);
-      setIsPlaying(false);
+
+    if (isSdkReady && player) {
+      await player.togglePlay();
     } else {
-      await play(session.accessToken);
-      setIsPlaying(true);
+      if (isPlaying) {
+        await pause(session.accessToken);
+        setIsPlaying(false);
+      } else {
+        await play(session.accessToken);
+        setIsPlaying(true);
+      }
     }
   };
 
   const nextTrack = async () => {
-    if (session?.accessToken) {
+    if (isSdkReady && player) {
+      await player.nextTrack();
+    } else if (session?.accessToken) {
       await next(session.accessToken);
     }
   };
 
   const previousTrack = async () => {
-    if (session?.accessToken) {
+    if (isSdkReady && player) {
+      await player.previousTrack();
+    } else if (session?.accessToken) {
       await previous(session.accessToken);
     }
   };
 
-  if (!session) return null;
-  // if (!isPlayerVisible) return null; // Always show player if session exists (and data is available)
   if (!title && !artist) return null; // Hide only if no track info at all
 
   // Render Logic (Lyrics View vs Bottom Bar)
@@ -151,23 +160,23 @@ export default function BottomPlayer() {
 
       <div className="flex flex-col items-center w-1/3">
         <div className="flex items-center gap-4 mb-2">
-          <button onClick={previousTrack} className="text-gray-400 hover:text-white"><SkipBack size={20} /></button>
-          <button onClick={togglePlay} className="p-2 bg-white rounded-full text-black hover:scale-105 transition">
+          <button onClick={previousTrack} className="text-gray-400 hover:text-white" disabled={!session}><SkipBack size={20} /></button>
+          <button onClick={togglePlay} className="p-2 bg-white rounded-full text-black hover:scale-105 transition" disabled={!session}>
             {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" />}
           </button>
-          <button onClick={nextTrack} className="text-gray-400 hover:text-white"><SkipForward size={20} /></button>
+          <button onClick={nextTrack} className="text-gray-400 hover:text-white" disabled={!session}><SkipForward size={20} /></button>
         </div>
         <div className="w-full h-1 bg-zinc-700 rounded-full overflow-hidden">
           <div 
             className="h-full bg-green-500 transition-all duration-1000 ease-linear" 
-            style={{ width: `${(progress / (duration / 1000)) * 100}%` }}
+            style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
           />
         </div>
       </div>
 
       <div className="flex items-center justify-end gap-4 w-1/3">
         {/* Language Controls in Minimized View */}
-        <div className="hidden md:flex items-center gap-2 bg-zinc-800 rounded-full px-3 py-1.5 mr-2">
+        <div className="flex items-center gap-2 bg-zinc-800 rounded-full px-3 py-1.5 mr-2">
           <Globe className="w-3 h-3 text-zinc-400" />
           <select
             className="bg-transparent text-xs focus:outline-none text-white w-auto cursor-pointer"
@@ -182,7 +191,7 @@ export default function BottomPlayer() {
         </div>
         <button
           onClick={toggleTranslation}
-          className={`hidden md:block p-2 rounded-full transition-colors ${showTranslation
+          className={`p-2 rounded-full transition-colors ${showTranslation
             ? "bg-blue-900/30 text-blue-400"
             : "bg-zinc-800 text-zinc-400"
             }`}

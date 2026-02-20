@@ -3,10 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { transferPlayback } from '@/lib/spotify';
 
 declare global {
   interface Window {
     onSpotifyWebPlaybackSDKReady: () => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Spotify: any;
   }
 }
@@ -16,9 +18,12 @@ export default function SpotifyPlayer() {
   const { 
     setDeviceId, 
     setPlayback, 
-    updateProgress, 
+    updateProgress,
+    setIsSdkReady,
+    setPlayer
   } = usePlayerStore();
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -45,12 +50,33 @@ export default function SpotifyPlayer() {
       player.addListener('ready', ({ device_id }: { device_id: string }) => {
         console.log('Ready with Device ID', device_id);
         setDeviceId(device_id);
+        setIsSdkReady(true);
+        setPlayer(player);
+        // Auto-transfer playback to this device
+        transferPlayback(session.accessToken as string, device_id);
       });
 
       player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
         console.log('Device ID has gone offline', device_id);
+        setIsSdkReady(false);
       });
 
+      player.addListener('authentication_error', ({ message }: { message: string }) => {
+          console.error('Authentication Error:', message);
+          setIsSdkReady(false);
+      });
+
+      player.addListener('account_error', ({ message }: { message: string }) => {
+          console.error('Account Error:', message);
+          setIsSdkReady(false);
+      });
+
+      player.addListener('initialization_error', ({ message }: { message: string }) => {
+          console.error('Initialization Error:', message);
+          setIsSdkReady(false);
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       player.addListener('player_state_changed', (state: any) => {
         if (!state) return;
 
@@ -60,6 +86,7 @@ export default function SpotifyPlayer() {
           isPlaying: !state.paused,
           trackId: currentTrack.id,
           title: currentTrack.name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           artist: currentTrack.artists.map((a: any) => a.name).join(', '),
           albumArt: currentTrack.album.images[0]?.url,
           duration: currentTrack.duration_ms / 1000,
@@ -78,9 +105,11 @@ export default function SpotifyPlayer() {
     return () => {
         if (playerRef.current) {
             playerRef.current.disconnect();
+            setIsSdkReady(false);
+            setPlayer(null);
         }
     };
-  }, [session, setDeviceId, setPlayback, updateProgress]);
+  }, [session, setDeviceId, setPlayback, updateProgress, setIsSdkReady, setPlayer]);
 
   // Local progress incrementor
   useEffect(() => {

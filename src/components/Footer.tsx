@@ -30,7 +30,7 @@ const UI_TEXT = {
 
 export default function Footer() {
   const { data: session } = useSession();
-  const { uiLanguage } = usePlayerStore();
+  const { uiLanguage, title, artist } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -41,14 +41,12 @@ export default function Footer() {
   const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || "en" : "en";
   const t = UI_TEXT[currentLang] || UI_TEXT.en;
 
-  // If logged in, hide the footer to prevent "double footer" look with the player bar
-  // The player bar acts as the primary bottom element for logged-in users
-  if (session) {
-    return null;
-  }
+  // If logged in or track info exists, hide the footer to prevent "double footer" look with the player bar
+  // The player bar acts as the primary bottom element
+  const isPlayerVisible = session || (title && artist);
 
   return (
-    <footer className="w-full bg-black border-t border-zinc-800 flex flex-col items-center">
+    <footer className={`w-full bg-black border-t border-zinc-800 flex flex-col items-center ${isPlayerVisible ? 'pb-24' : 'pb-6'}`}>
       {/* Disclaimer */}
       <div className="w-full max-w-7xl mx-auto pt-6 px-6 text-center">
         <p className="text-xs text-zinc-600 max-w-2xl mx-auto">

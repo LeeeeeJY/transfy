@@ -7,7 +7,7 @@ import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
 import { usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
-import { Loader2, Music } from "lucide-react";
+import { Loader2, Music, Globe, Languages } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 
 // UI Text Dictionary
@@ -85,6 +85,11 @@ export default function LyricsView({
     if (trackMatch) {
       const artist = decodeURIComponent(trackMatch[1]);
       const title = decodeURIComponent(trackMatch[2]);
+      
+      // If we are in Spotify mode (logged in), we should rely on the store's trackId 
+      // instead of generating a static one, to avoid mismatch.
+      // But initially, we might only have the URL.
+      // Let's return the static ID, but handle the mismatch logic smarter.
       return `static-${artist}-${title}`.replace(/\s+/g, '-').toLowerCase();
     }
 
@@ -100,7 +105,12 @@ export default function LyricsView({
   useEffect(() => {
     // Always clear lyrics when component mounts to prevent showing previous lyrics
     // But only if we are navigating to a new track
-    if (isIdMismatch) {
+    
+    // If we are using Spotify provider, we should trust the store's trackId and ignore URL mismatch
+    // because URL might be static (from search) but playback is real.
+    const isSpotifyProvider = usePlayerStore.getState().provider === 'spotify';
+    
+    if (isIdMismatch && !isSpotifyProvider) {
       console.log("Clearing lyrics on mount/change due to ID mismatch");
       setStoreLyrics([]);
       setLoadingLyrics(true); // Start loading
@@ -304,9 +314,8 @@ export default function LyricsView({
   const displayArtist = dummySong?.artist || storeArtist;
   const displayArt = dummySong?.albumArt || storeAlbumArt;
 
-  // Render static view for non-logged in users or when lyrics are available but not playing
-  // Also used for dummy tracks view in some cases
-  if (!session || lyrics.length > 0) {
+  // Render static view for non-logged in users
+  if (!session) {
     // Use lyrics from store if available, otherwise dummy lyrics
     const displayLyrics = lyrics.length > 0
       ? lyrics
@@ -330,7 +339,7 @@ export default function LyricsView({
             </div>
           )}
 
-          <div className="max-w-3xl mx-auto space-y-8 pb-32">
+          <div className="max-w-3xl mx-auto space-y-8">
             {/* Header Section */}
             <div className="text-center pt-8 pb-4 relative">
               <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white">
@@ -392,7 +401,7 @@ export default function LyricsView({
     if (pathname.startsWith("/lyric/") || pathname.startsWith("/track/") || urlTrackId) {
       return (
         <div className="w-full px-4 py-8 bg-black text-white">
-          <div className="max-w-3xl mx-auto space-y-8 pb-32">
+          <div className="max-w-3xl mx-auto space-y-8">
             {/* Header Section - Always show track info even if lyrics missing */}
             <div className="text-center pt-8 pb-4">
               <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white">
@@ -455,32 +464,88 @@ export default function LyricsView({
         </div>
       )}
 
-      <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-32 pt-12">
-        {lyrics.map((line, index) => {
-          const isActive = index === activeIndex;
-          return (
-            <div
-              key={line.id}
-              ref={isActive ? activeLineRef : null}
-              className={`transition-all duration-500 ease-in-out cursor-pointer ${isActive
-                ? "opacity-100 scale-105 origin-left"
-                : "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
-                }`}
-              onClick={() => {
-                // Optional: Seek functionality could be added here
-              }}
-            >
-              <p className="text-2xl md:text-3xl font-bold text-white mb-1 leading-snug whitespace-pre-wrap break-words">
-                {line.text}
-              </p>
-              {showTranslation && line.translation && (
-                <p className="text-lg md:text-xl font-medium text-blue-400 leading-snug whitespace-pre-wrap break-words">
-                  {line.translation}
-                </p>
-              )}
+      <div className="max-w-3xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center pt-8 pb-4 relative">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white">
+            {displayTitle}
+          </h1>
+          <p className="text-xl md:text-2xl mb-6 text-zinc-400">
+            {displayArtist}
+          </p>
+          
+          {displayArt && displayArt !== "/file.svg" ? (
+            <div className="flex justify-center mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={displayArt}
+                alt={`${displayTitle} album art`}
+                className="w-48 h-48 rounded-lg shadow-xl"
+              />
             </div>
-          );
-        })}
+          ) : (
+            <div className="flex justify-center mb-6">
+              <div className="w-48 h-48 bg-zinc-800 rounded-lg shadow-xl flex items-center justify-center">
+                <Music className="w-20 h-20 text-zinc-600" />
+              </div>
+            </div>
+          )}
+
+          {/* Controls (Language & Translation Toggle) */}
+          <div className="flex justify-center items-center gap-4 mb-4">
+            <div className="flex items-center gap-2 bg-zinc-800/50 rounded-full px-3 py-1.5">
+              <Globe className="w-4 h-4 text-zinc-400" />
+              <select
+                className="bg-transparent text-sm focus:outline-none text-white w-auto cursor-pointer"
+                value={targetLanguage}
+                onChange={(e) => usePlayerStore.getState().setTargetLanguage(e.target.value)}
+              >
+                <option value="ko" className="bg-zinc-800 text-white">한국어</option>
+                <option value="en" className="bg-zinc-800 text-white">English</option>
+                <option value="ja" className="bg-zinc-800 text-white">日本語</option>
+                <option value="zh" className="bg-zinc-800 text-white">中文</option>
+              </select>
+            </div>
+            <button
+              onClick={() => usePlayerStore.getState().toggleTranslation()}
+              className={`p-2 rounded-full transition-colors ${showTranslation
+                ? "bg-blue-900/30 text-blue-400"
+                : "bg-zinc-800/50 text-zinc-400"
+                }`}
+              title="번역 켜기/끄기"
+            >
+              <Languages className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-32">
+          {lyrics.map((line, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <div
+                key={line.id}
+                ref={isActive ? activeLineRef : null}
+                className={`transition-all duration-500 ease-in-out cursor-pointer ${isActive
+                  ? "opacity-100 scale-105 origin-left"
+                  : "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
+                  }`}
+                onClick={() => {
+                  // Optional: Seek functionality could be added here
+                }}
+              >
+                <p className="text-2xl md:text-3xl font-bold text-white mb-1 leading-snug whitespace-pre-wrap break-words">
+                  {line.text}
+                </p>
+                {showTranslation && line.translation && (
+                  <p className="text-lg md:text-xl font-medium text-blue-400 leading-snug whitespace-pre-wrap break-words">
+                    {line.translation}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -22,7 +22,7 @@ export function useLyricsFetcher() {
 
   useEffect(() => {
     // Skip if no trackId or if it's a dummy track (Test Mode - though we are removing Test Mode, we might keep check for safety)
-    if (!trackId || trackId.startsWith("dummy-")) return;
+    if (!trackId || trackId.startsWith("dummy-") || !title || !artist) return;
 
     // We don't strictly need session for lyrics (LRCLIB is public), 
     // but we use it for logging if available.

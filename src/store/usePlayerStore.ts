@@ -39,6 +39,9 @@ interface PlayerState {
   isInitialized: boolean;
   isLoadingLyrics: boolean;
   provider: "spotify" | "apple" | "none"; // For tracking source
+  isSdkReady: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  player: any | null; // Spotify Player instance
 
   // Flat properties for easier access (to match ClientHome usage)
   title: string;
@@ -68,6 +71,9 @@ interface PlayerState {
   setIsLoadingLyrics: (loading: boolean) => void;
   setLoadingLyrics: (loading: boolean) => void; // Alias
   setProvider: (provider: "spotify" | "apple" | "none") => void;
+  setIsSdkReady: (isReady: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setPlayer: (player: any) => void;
   
   // Bulk update
   setPlayback: (state: Partial<PlayerState>) => void;
@@ -92,6 +98,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isInitialized: false,
   isLoadingLyrics: false,
   provider: 'none',
+  isSdkReady: false,
+  player: null,
 
   // Flat properties defaults
   title: '',
@@ -145,6 +153,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setIsLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }),
   setLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }), // Alias implementation
   setProvider: (provider) => set({ provider }),
+  setIsSdkReady: (isReady) => set({ isSdkReady: isReady }),
+  setPlayer: (player) => set({ player }),
   
   setPlayback: (state) => set((prev) => ({ ...prev, ...state })),
 }));

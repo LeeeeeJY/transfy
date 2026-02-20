@@ -14,7 +14,95 @@ export interface Track {
   uri: string;
 }
 
-export async function searchTracksAction(term: string, lang: string = 'en'): Promise<Track[]> {
+export interface Artist {
+  id: string;
+  name: string;
+  image: string;
+  genres: string;
+  uri: string;
+}
+
+export interface Album {
+  id: string;
+  name: string;
+  artist: string;
+  image: string;
+  uri: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  owner: string;
+  image: string;
+  uri: string;
+}
+
+interface SpotifyImage {
+  url: string;
+  height?: number;
+  width?: number;
+}
+
+interface SpotifyArtist {
+  id: string;
+  name: string;
+  images?: SpotifyImage[];
+  genres?: string[];
+  uri: string;
+}
+
+interface SpotifyAlbum {
+  id: string;
+  name: string;
+  images: SpotifyImage[];
+  artists: SpotifyArtist[];
+  uri: string;
+}
+
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: SpotifyArtist[];
+  album: SpotifyAlbum;
+  duration_ms: number;
+  uri: string;
+}
+
+interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  owner: { display_name: string };
+  images: SpotifyImage[];
+  uri: string;
+}
+
+interface SpotifySavedAlbum {
+  album: SpotifyAlbum;
+}
+
+interface SpotifyPlayHistory {
+  track: SpotifyTrack;
+  played_at: string;
+}
+
+interface ItunesTrack {
+  trackId: number;
+  trackName: string;
+  artistName: string;
+  collectionName: string;
+  artworkUrl100: string;
+  trackTimeMillis: number;
+}
+
+interface ItunesRssItem {
+  id: string;
+  name: string;
+  artistName: string;
+  artworkUrl100: string;
+}
+
+export async function searchTracksAction(term: string, lang: string = 'en', limit: number = 10, offset: number = 0): Promise<Track[]> {
   if (!term || !term.trim()) return [];
   
   const session = await getServerSession(authOptions);
@@ -29,35 +117,38 @@ export async function searchTracksAction(term: string, lang: string = 'en'): Pro
         params: {
           q: term,
           type: 'track',
-          limit: 20,
+          limit: limit,
+          offset: offset,
           // market: 'from_token' // Remove market parameter to avoid 400 error
         },
       });
 
-      return response.data.tracks.items.map((item: any) => ({
+      return response.data.tracks.items.map((item: SpotifyTrack) => ({
         id: item.id,
         title: item.name,
-        artist: item.artists.map((a: any) => a.name).join(', '),
+        artist: item.artists.map((a) => a.name).join(', '),
         album: item.album.name,
         albumArt: item.album.images[0]?.url || '',
         duration: item.duration_ms / 1000,
         uri: item.uri
       }));
-    } catch (error: any) {
-      console.error('Spotify Search Error, falling back to iTunes:', error.message);
-      if (axios.isAxiosError(error) && error.response) {
-        console.error('Spotify Error Response:', JSON.stringify(error.response.data));
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = error as any;
+      console.error('Spotify Search Error, falling back to iTunes:', err.message);
+      if (axios.isAxiosError(err) && err.response) {
+        console.error('Spotify Error Response:', JSON.stringify(err.response.data));
       }
       // Fallback to iTunes if Spotify fails
     }
   }
 
   // 2. If Not Logged In OR Spotify Failed: Use iTunes Search
-  return searchTracksItunes(term, lang);
+  return searchTracksItunes(term, lang, limit, offset);
 }
 
 // Fallback iTunes Search API
-async function searchTracksItunes(term: string, lang: string): Promise<Track[]> {
+async function searchTracksItunes(term: string, lang: string, limit: number, offset: number): Promise<Track[]> {
   const langMap: Record<string, string> = {
     'ko': 'ko_kr',
     'ja': 'ja_jp',
@@ -72,13 +163,13 @@ async function searchTracksItunes(term: string, lang: string): Promise<Track[]> 
         term,
         media: 'music',
         entity: 'song',
-        limit: 20,
+        limit: limit + offset, // iTunes doesn't support offset directly, so we fetch more and slice
         lang: apiLang,
         country: apiLang === 'ko_kr' ? 'KR' : 'US',
       },
     });
 
-    return response.data.results.map((item: any) => ({
+    return response.data.results.slice(offset).map((item: ItunesTrack) => ({
       id: String(item.trackId), // iTunes ID is number, convert to string
       title: item.trackName,
       artist: item.artistName,
@@ -93,35 +184,48 @@ async function searchTracksItunes(term: string, lang: string): Promise<Track[]> 
   }
 }
 
-export async function getTopArtistsAction(): Promise<any[]> {
+export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_range: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<Artist[] | Track[]> {
   const session = await getServerSession(authOptions);
 
   if (session?.accessToken) {
     try {
-      const response = await axios.get(`https://api.spotify.com/v1/me/top/artists`, {
+      const response = await axios.get(`https://api.spotify.com/v1/me/top/${type}`, {
         headers: { Authorization: `Bearer ${session.accessToken}` },
         params: {
           limit: 20,
-          time_range: 'short_term'
+          time_range: time_range
         }
       });
 
-      return response.data.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        image: item.images[0]?.url || '',
-        genres: (item.genres || []).slice(0, 2).join(', '),
-        uri: item.uri
-      }));
+      if (type === 'artists') {
+        return response.data.items.map((item: SpotifyArtist) => ({
+          id: item.id,
+          name: item.name,
+          image: item.images?.[0]?.url || '',
+          genres: (item.genres || []).slice(0, 2).join(', '),
+          uri: item.uri
+        }));
+      } else {
+        // tracks
+        return response.data.items.map((item: SpotifyTrack) => ({
+          id: item.id,
+          title: item.name,
+          artist: item.artists.map((a) => a.name).join(', '),
+          album: item.album.name,
+          albumArt: item.album.images[0]?.url || '',
+          duration: item.duration_ms / 1000,
+          uri: item.uri
+        }));
+      }
     } catch (error) {
-      console.error('Spotify Top Artists Error:', error);
+      console.error(`Spotify Top ${type} Error:`, error);
       return [];
     }
   }
   return [];
 }
 
-export async function getTopChartsAction(lang: string = 'en'): Promise<Track[]> {
+export async function getTopChartsAction(lang: string = 'en', limit: number = 10, offset: number = 0): Promise<Track[]> {
   const session = await getServerSession(authOptions);
 
   // 1. If Logged In: Use User's Top Tracks (Personalized)
@@ -131,15 +235,16 @@ export async function getTopChartsAction(lang: string = 'en'): Promise<Track[]> 
       const response = await axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
         headers: { Authorization: `Bearer ${session.accessToken}` },
         params: {
-          limit: 50,
+          limit: limit,
+          offset: offset,
           time_range: 'short_term' // Last 4 weeks
         }
       });
 
-      return response.data.items.map((item: any) => ({
+      return response.data.items.map((item: SpotifyTrack) => ({
         id: item.id,
         title: item.name,
-        artist: item.artists.map((a: any) => a.name).join(', '),
+        artist: item.artists.map((a) => a.name).join(', '),
         album: item.album.name,
         albumArt: item.album.images[0]?.url || '',
         duration: item.duration_ms / 1000,
@@ -164,10 +269,15 @@ export async function getTopChartsAction(lang: string = 'en'): Promise<Track[]> 
 
   try {
     console.log(`Fetching iTunes Top 100 for ${storefront}`);
+    // iTunes RSS feed doesn't support limit/offset in the URL same way, it returns fixed list.
+    // We fetch 100 and slice manually.
     const response = await axios.get(`https://rss.applemarketingtools.com/api/v2/${storefront}/music/most-played/100/songs.json`);
     const results = response.data.feed.results;
 
-    return results.map((item: any) => ({
+    // Slice results based on limit and offset
+    const slicedResults = results.slice(offset, offset + limit);
+
+    return slicedResults.map((item: ItunesRssItem) => ({
       id: item.id,
       title: item.name,
       artist: item.artistName,
@@ -182,7 +292,7 @@ export async function getTopChartsAction(lang: string = 'en'): Promise<Track[]> 
   }
 }
 
-export async function getUserSavedAlbumsAction(): Promise<any[]> {
+export async function getUserSavedAlbumsAction(): Promise<Album[]> {
   const session = await getServerSession(authOptions);
 
   if (session?.accessToken) {
@@ -192,10 +302,10 @@ export async function getUserSavedAlbumsAction(): Promise<any[]> {
         params: { limit: 10 }
       });
 
-      return response.data.items.map((item: any) => ({
+      return response.data.items.map((item: SpotifySavedAlbum) => ({
         id: item.album.id,
         name: item.album.name,
-        artist: item.album.artists.map((a: any) => a.name).join(', '),
+        artist: item.album.artists.map((a) => a.name).join(', '),
         image: item.album.images[0]?.url || '',
         uri: item.album.uri
       }));
@@ -207,7 +317,7 @@ export async function getUserSavedAlbumsAction(): Promise<any[]> {
   return [];
 }
 
-export async function getUserPlaylistsAction(): Promise<any[]> {
+export async function getUserPlaylistsAction(): Promise<Playlist[]> {
   const session = await getServerSession(authOptions);
 
   if (session?.accessToken) {
@@ -217,7 +327,7 @@ export async function getUserPlaylistsAction(): Promise<any[]> {
         params: { limit: 10 }
       });
 
-      return response.data.items.map((item: any) => ({
+      return response.data.items.map((item: SpotifyPlaylist) => ({
         id: item.id,
         name: item.name,
         owner: item.owner.display_name,
@@ -249,10 +359,10 @@ export async function getRecentlyPlayedAction(): Promise<Track[]> {
       }
     });
 
-    return response.data.items.map((item: any) => ({
+    return response.data.items.map((item: SpotifyPlayHistory) => ({
       id: item.track.id,
       title: item.track.name,
-      artist: item.track.artists.map((a: any) => a.name).join(', '),
+      artist: item.track.artists.map((a) => a.name).join(', '),
       album: item.track.album.name,
       albumArt: item.track.album.images[0]?.url || '',
       duration: item.track.duration_ms / 1000,

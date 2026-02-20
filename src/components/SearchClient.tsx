@@ -1,16 +1,29 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Loader2, TrendingUp, PlayCircle, FileText } from 'lucide-react';
-import { searchTracksAction, getTopChartsAction, Track } from '@/app/actions/search';
-import { usePlayerStore } from '@/store/usePlayerStore';
-import { useSession } from 'next-auth/react';
-import { play } from '@/lib/spotify';
+import { useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Search,
+  Loader2,
+  TrendingUp,
+  PlayCircle,
+  FileText,
+  X,
+} from "lucide-react";
+import {
+  searchTracksAction,
+  getTopChartsAction,
+  Track,
+} from "@/app/actions/search";
+import { usePlayerStore } from "@/store/usePlayerStore";
+import { useSession } from "next-auth/react";
+import { play } from "@/lib/spotify";
 
 interface SearchClientProps {
   initialLang: string;
 }
+
+const INITIAL_VISIBLE = 10;
 
 const SEARCH_UI_TEXT = {
   ko: {
@@ -18,39 +31,43 @@ const SEARCH_UI_TEXT = {
     searchButton: "검색",
     recentlyPlayed: "최근 재생한 곡",
     topCharts: "지금 뜨는 인기곡 (Top 100)",
-    topChartsSpotify: "내 취향 저격 (Top Tracks)",
+    topChartsSpotify: "최근 많이 들은 곡",
     noResults: "검색 결과가 없습니다.",
+    showMore: "더보기",
   },
   en: {
     placeholder: "Search for songs, artists...",
     searchButton: "Search",
     recentlyPlayed: "Recently Played Songs",
     topCharts: "Top Charts (Top 100)",
-    topChartsSpotify: "Your Top Tracks",
+    topChartsSpotify: "Current Top Tracks",
     noResults: "No results found.",
+    showMore: "Show more",
   },
   ja: {
     placeholder: "曲名、アーティストを検索...",
     searchButton: "検索",
     recentlyPlayed: "最近再生した曲",
     topCharts: "今の人気曲 (Top 100)",
-    topChartsSpotify: "あなたのトップトラック",
+    topChartsSpotify: "最近よく聴く曲",
     noResults: "検索結果がありません。",
+    showMore: "もっと見る",
   },
   zh: {
     placeholder: "搜索歌曲、艺术家...",
     searchButton: "搜索",
     recentlyPlayed: "最近播放的歌曲",
     topCharts: "热门歌曲 (Top 100)",
-    topChartsSpotify: "您的热门歌曲",
+    topChartsSpotify: "最近常听的歌曲",
     noResults: "未找到结果。",
-  }
+    showMore: "查看更多",
+  },
 } as const;
 
 export default function SearchClient({ initialLang }: SearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get('q') || '';
+  const initialQuery = searchParams.get("q") || "";
   const { data: session } = useSession();
 
   const [query, setQuery] = useState(initialQuery);
@@ -58,21 +75,35 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const [topCharts, setTopCharts] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingCharts, setLoadingCharts] = useState(true);
+  const [loadingMoreResults, setLoadingMoreResults] = useState(false);
+  const [loadingMoreCharts, setLoadingMoreCharts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  // Pagination State
+  const [resultsOffset, setResultsOffset] = useState(0);
+  const [chartsOffset, setChartsOffset] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(true);
+  const [hasMoreCharts, setHasMoreCharts] = useState(true);
 
   const { setTrack, setIsPlaying } = usePlayerStore();
 
   // Get UI text based on language
-  const t = SEARCH_UI_TEXT[initialLang as keyof typeof SEARCH_UI_TEXT] || SEARCH_UI_TEXT.en;
+  const t =
+    SEARCH_UI_TEXT[initialLang as keyof typeof SEARCH_UI_TEXT] ||
+    SEARCH_UI_TEXT.en;
 
   // Fetch Top Charts on mount
   useEffect(() => {
     const fetchTopCharts = async () => {
       setLoadingCharts(true);
       try {
-        const data = await getTopChartsAction(initialLang);
+        // Initial fetch: limit 10, offset 0
+        const data = await getTopChartsAction(initialLang, 10, 0);
         setTopCharts(data);
+        setChartsOffset(10);
+        setHasMoreCharts(data.length === 10);
       } catch (err) {
         console.error("Failed to fetch top charts", err);
       } finally {
@@ -83,32 +114,58 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     fetchTopCharts();
   }, [initialLang]);
 
-  // Search function
-  const handleSearch = useCallback(async (term: string) => {
-    if (!term.trim()) {
-      setResults([]);
-      setHasSearched(false);
-      router.push('/search');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setHasSearched(true);
-
+  const loadMoreCharts = async () => {
+    if (loadingMoreCharts || !hasMoreCharts) return;
+    
+    setLoadingMoreCharts(true);
     try {
-      router.push(`/search?q=${encodeURIComponent(term)}`);
+      const nextData = await getTopChartsAction(initialLang, 10, chartsOffset);
+      if (nextData.length === 0) {
+        setHasMoreCharts(false);
+      } else {
+        setTopCharts(prev => [...prev, ...nextData]);
+        setChartsOffset(prev => prev + 10);
+        if (nextData.length < 10) setHasMoreCharts(false);
+      }
     } catch (err) {
-      console.error(err);
-      setError('Failed to update URL.');
+      console.error("Failed to load more charts", err);
+    } finally {
+      setLoadingMoreCharts(false);
     }
-  }, [router]);
+  };
+
+  // Search function
+  const handleSearch = useCallback(
+    async (term: string) => {
+      if (!term.trim()) {
+        setResults([]);
+        setHasSearched(false);
+        setResultsOffset(0);
+        router.push("/search");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      setHasSearched(true);
+      setResultsOffset(0); // Reset offset on new search
+
+      try {
+        router.push(`/search?q=${encodeURIComponent(term)}`);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to update URL.");
+      }
+    },
+    [router],
+  );
 
   // Handle URL Query Changes
   useEffect(() => {
     if (!initialQuery) {
       setResults([]);
       setHasSearched(false);
+      setResultsOffset(0);
       return;
     }
 
@@ -116,13 +173,17 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       setLoading(true);
       setError(null);
       setHasSearched(true);
+      setResultsOffset(0);
 
       try {
-        const data = await searchTracksAction(initialQuery, initialLang);
+        // Initial search: limit 10, offset 0
+        const data = await searchTracksAction(initialQuery, initialLang, 10, 0);
         setResults(data);
+        setResultsOffset(10);
+        setHasMoreResults(data.length === 10);
       } catch (err) {
         console.error(err);
-        setError('Failed to search tracks.');
+        setError("Failed to search tracks.");
       } finally {
         setLoading(false);
       }
@@ -136,12 +197,32 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     setQuery(initialQuery);
   }, [initialQuery]);
 
+  const loadMoreResults = async () => {
+    if (loadingMoreResults || !hasMoreResults) return;
+
+    setLoadingMoreResults(true);
+    try {
+      const nextData = await searchTracksAction(initialQuery, initialLang, 10, resultsOffset);
+      if (nextData.length === 0) {
+        setHasMoreResults(false);
+      } else {
+        setResults(prev => [...prev, ...nextData]);
+        setResultsOffset(prev => prev + 10);
+        if (nextData.length < 10) setHasMoreResults(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more results", err);
+    } finally {
+      setLoadingMoreResults(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch(query);
     }
   };
@@ -156,10 +237,14 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       await play(session.accessToken, track.uri);
       setTrack(track);
       setIsPlaying(true);
-      router.push(`/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`);
+      router.push(
+        `/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`,
+      );
     } else {
       // Guest: Navigate to Track Page (Static View)
-      router.push(`/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`);
+      router.push(
+        `/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`,
+      );
     }
   };
 
@@ -178,17 +263,35 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
             value={query}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholder={t.placeholder}
             className="w-full bg-zinc-900 text-white placeholder-zinc-500 rounded-lg pl-12 pr-20 py-4 focus:outline-none focus:ring-2 focus:ring-green-500/50 border border-zinc-800 transition-all"
           />
 
           <div className="absolute right-2 flex items-center gap-2">
+            {isSearchFocused && query && (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setQuery("");
+                  router.push("/search");
+                }}
+                className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={handleSearchClick}
               disabled={loading}
               className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors cursor-pointer"
             >
-              {loading && <Loader2 className="w-4 h-4 text-green-500 animate-spin" />}
+              {loading && (
+                <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+              )}
               {t.searchButton}
             </button>
           </div>
@@ -244,17 +347,28 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               </div>
             </div>
           ))}
+          
+          {hasMoreResults && (
+            <button
+              type="button"
+              onClick={loadMoreResults}
+              disabled={loadingMoreResults}
+              className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-600 transition-colors text-sm font-medium flex justify-center items-center gap-2"
+            >
+              {loadingMoreResults && <Loader2 className="w-4 h-4 animate-spin" />}
+              {t.showMore}
+            </button>
+          )}
         </div>
       )}
 
       {/* Dashboard (Visible when no search has been performed) */}
       {!hasSearched && !query && (
         <div className="space-y-12">
-          
           {/* Recently Played (Moved to Dashboard) */}
-          
+
           {/* Top Artists (Only if logged in) - Removed from Search, moved to Dashboard */}
-          
+
           {/* Top Charts */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-white/80 pb-2 border-b border-zinc-800">
@@ -311,6 +425,18 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                     </div>
                   </div>
                 ))}
+                
+                {hasMoreCharts && (
+                  <button
+                    type="button"
+                    onClick={loadMoreCharts}
+                    disabled={loadingMoreCharts}
+                    className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-600 transition-colors text-sm font-medium flex justify-center items-center gap-2"
+                  >
+                    {loadingMoreCharts && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {t.showMore}
+                  </button>
+                )}
               </div>
             )}
           </div>

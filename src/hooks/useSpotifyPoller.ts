@@ -8,6 +8,7 @@ export function useSpotifyPoller() {
   const {
     setPlayback,
     updateProgress,
+    isSdkReady,
   } = usePlayerStore();
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -16,6 +17,9 @@ export function useSpotifyPoller() {
   // 1. Poll Spotify Playback State
   useEffect(() => {
     if (!session?.accessToken) return;
+
+    // If SDK is active, we rely on SDK events instead of polling
+    if (isSdkReady) return;
 
     const fetchPlayback = async () => {
       const data = await getCurrentlyPlaying(session.accessToken as string);
@@ -31,7 +35,7 @@ export function useSpotifyPoller() {
 
       // Check if local SDK is active (playing) to avoid conflict
       const current = usePlayerStore.getState();
-      const isLocalSdkPlaying = current.provider === 'spotify' && current.isPlaying && current.deviceId && data.device.id === current.deviceId;
+      const isLocalSdkPlaying = current.provider === 'spotify' && current.isPlaying && current.deviceId && data.device?.id === current.deviceId;
 
       setPlayback({
         isPlaying: data.is_playing,
@@ -51,12 +55,36 @@ export function useSpotifyPoller() {
     };
 
     fetchPlayback(); // Initial fetch
-    pollIntervalRef.current = setInterval(fetchPlayback, 1000); // Poll every 1s
+    
+    // Smart Polling Strategy
+    const startPolling = () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = setInterval(fetchPlayback, 3000); // Poll every 3s (slower to avoid 429)
+    };
 
-    return () => {
+    const stopPolling = () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
-  }, [session, setPlayback]);
+
+    // Handle visibility change to stop polling when tab is hidden
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        fetchPlayback(); // Fetch immediately on resume
+        startPolling();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    startPolling();
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [session, setPlayback, isSdkReady]);
+
 
   // 2. Local Timer for Smooth Progress
   useEffect(() => {

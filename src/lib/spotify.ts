@@ -71,3 +71,21 @@ export async function previous(accessToken: string) {
     console.error("Error skipping previous:", error);
   }
 }
+
+export async function transferPlayback(accessToken: string, deviceId: string) {
+  try {
+    await fetch("https://api.spotify.com/v1/me/player", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        device_ids: [deviceId],
+        play: true,
+      }),
+    });
+  } catch (error) {
+    console.error("Error transferring playback:", error);
+  }
+}

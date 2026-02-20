@@ -118,7 +118,7 @@ export default async function RootLayout({
       >
         <Providers>
           <Header initialLang={initialLang} />
-          <div className="pt-14 flex-1 flex flex-col pb-24">
+          <div className="pt-14 flex-1 flex flex-col">
             {children}
           </div>
           <BottomPlayer />

@@ -1,4 +1,4 @@
-import { NextAuthOptions, TokenSet } from "next-auth";
+import { NextAuthOptions, TokenSet, User } from "next-auth";
 import SpotifyProvider from "next-auth/providers/spotify";
 
 const SCOPES = [
@@ -19,15 +19,17 @@ interface ExtendedToken extends TokenSet {
   accessToken: string;
   accessTokenExpires: number;
   refreshToken: string;
-  user?: any;
+  user?: User;
   error?: string;
 }
 
-async function refreshAccessToken(token: ExtendedToken): Promise<ExtendedToken> {
+async function refreshAccessToken(
+  token: ExtendedToken,
+): Promise<ExtendedToken> {
   try {
     const url = "https://accounts.spotify.com/api/token";
     const basicAuth = Buffer.from(
-      `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+      `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`,
     ).toString("base64");
 
     const response = await fetch(url, {
@@ -69,7 +71,39 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.SPOTIFY_CLIENT_ID!,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
       authorization: {
-        params: { scope: SCOPES },
+        params: { scope: SCOPES, show_dialog: "true" },
+      },
+      token: {
+        async request(context) {
+          const { provider, params, checks, client } = context;
+
+          let retries = 0;
+          const maxRetries = 3;
+
+          while (true) {
+            try {
+              const tokens = await client.oauthCallback(
+                provider.callbackUrl,
+                params,
+                checks,
+              );
+              return { tokens };
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+              console.log(
+                `Token exchange attempt ${retries + 1} failed:`,
+                error.message,
+              );
+
+              if (retries >= maxRetries) throw error;
+
+              // Exponential backoff: 1s, 2s, 4s
+              const delay = 1000 * Math.pow(2, retries);
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              retries++;
+            }
+          }
+        },
       },
     }),
   ],
@@ -79,7 +113,8 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         return {
           accessToken: account.access_token,
-          accessTokenExpires: Date.now() + (account.expires_at as number) * 1000,
+          accessTokenExpires:
+            Date.now() + (account.expires_at as number) * 1000,
           refreshToken: account.refresh_token,
           user,
         } as ExtendedToken;
@@ -93,7 +128,7 @@ export const authOptions: NextAuthOptions = {
       // Access token has expired, try to update it
       // Only refresh for Spotify provider
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (account?.provider === 'spotify' || !(token as any).user) {
+      if (account?.provider === "spotify" || !(token as any).user) {
         if ((token as ExtendedToken).refreshToken) {
           return refreshAccessToken(token as ExtendedToken);
         }

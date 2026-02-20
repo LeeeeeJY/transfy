@@ -52,17 +52,22 @@ const UI_TEXT = {
 
     // SEO Content (Korean)
     seoTitle: "전 세계를 잇는 음악 경험",
-    seoDesc1: "오늘날 음악은 국경이 없습니다. K-Pop, J-Pop, 팝송 등 전 세계 음악을 즐기지만, 언어의 장벽 때문에 가사의 깊은 의미를 놓치기도 합니다. Transfy는 이 문제를 해결하기 위해 스포티파이 실시간 가사 번역 서비스를 제공합니다.",
-    seoDesc2: "새로운 언어를 배우고 있거나 단순히 가사의 의미를 알고 싶을 때, Transfy는 최고의 청취 경험을 선사합니다. 노래가 재생되면 즉시 번역된 가사를 띄워주어 흐름을 끊지 않고 음악에 몰입할 수 있습니다.",
+    seoDesc1:
+      "오늘날 음악은 국경이 없습니다. K-Pop, J-Pop, 팝송 등 전 세계 음악을 즐기지만, 언어의 장벽 때문에 가사의 깊은 의미를 놓치기도 합니다. Transfy는 이 문제를 해결하기 위해 스포티파이 실시간 가사 번역 서비스를 제공합니다.",
+    seoDesc2:
+      "새로운 언어를 배우고 있거나 단순히 가사의 의미를 알고 싶을 때, Transfy는 최고의 청취 경험을 선사합니다. 노래가 재생되면 즉시 번역된 가사를 띄워주어 흐름을 끊지 않고 음악에 몰입할 수 있습니다.",
     seoSubTitle1: "왜 실시간 번역인가요?",
-    seoSubDesc1: "기존의 가사 해석은 음악 앱을 끄고 검색해서 스크롤하며 봐야 했습니다. Transfy는 듣고 있는 음악과 완벽하게 동기화되어, 마치 음악 플레이어의 기본 기능처럼 작동합니다.",
+    seoSubDesc1:
+      "기존의 가사 해석은 음악 앱을 끄고 검색해서 스크롤하며 봐야 했습니다. Transfy는 듣고 있는 음악과 완벽하게 동기화되어, 마치 음악 플레이어의 기본 기능처럼 작동합니다.",
     seoSubTitle2: "지원 언어",
-    seoSubDesc2: "현재 한국어, 영어, 일본어, 중국어 간의 상호 번역을 지원합니다. 다양한 문화권의 사용자가 언어 장벽 없이 음악을 즐길 수 있도록, 지속적으로 언어를 추가하고 AI 모델을 고도화하고 있습니다.",
+    seoSubDesc2:
+      "현재 한국어, 영어, 일본어, 중국어 간의 상호 번역을 지원합니다. 다양한 문화권의 사용자가 언어 장벽 없이 음악을 즐길 수 있도록, 지속적으로 언어를 추가하고 AI 모델을 고도화하고 있습니다.",
 
     footerRights: "Transfy.",
     footerTerms: "이용약관",
     footerPrivacy: "개인정보처리방침",
-    disclaimer: "이 프로젝트는 교육 목적으로 제작된 비상업적 개인 프로젝트입니다. 가사 데이터는 LRCLIB에서 제공받으며, 모든 저작권은 원작자에게 있습니다.",
+    disclaimer:
+      "이 프로젝트는 교육 목적으로 제작된 비상업적 개인 프로젝트입니다. 가사 데이터는 LRCLIB에서 제공받으며, 모든 저작권은 원작자에게 있습니다.",
   },
   en: {
     subtitle: "Realtime lyrics translation service",
@@ -102,17 +107,22 @@ const UI_TEXT = {
 
     // SEO Content (English)
     seoTitle: "Global Music Experience",
-    seoDesc1: "In today's interconnected world, music knows no boundaries. K-Pop, J-Pop, and Western Pop are enjoyed globally, yet language barriers often limit the depth of appreciation. Transfy bridges this gap by providing real-time, synchronized translations for your favorite Spotify tracks.",
-    seoDesc2: "Whether you are learning a new language or simply want to understand the meaning behind the lyrics, Transfy enhances your listening experience. Our technology ensures that translations are delivered instantly as the song plays, allowing you to stay immersed in the rhythm while grasping the message.",
+    seoDesc1:
+      "In today's interconnected world, music knows no boundaries. K-Pop, J-Pop, and Western Pop are enjoyed globally, yet language barriers often limit the depth of appreciation. Transfy bridges this gap by providing real-time, synchronized translations for your favorite Spotify tracks.",
+    seoDesc2:
+      "Whether you are learning a new language or simply want to understand the meaning behind the lyrics, Transfy enhances your listening experience. Our technology ensures that translations are delivered instantly as the song plays, allowing you to stay immersed in the rhythm while grasping the message.",
     seoSubTitle1: "Why Real-time Translation Matters",
-    seoSubDesc1: "Static lyrics translations have existed for a long time, but they require you to look away from the music player and scroll manually. Transfy integrates directly with your listening session. By detecting the currently playing song on Spotify, we fetch and display the translated lyrics in perfect sync. This seamless integration makes it feel like a native feature of your music player.",
+    seoSubDesc1:
+      "Static lyrics translations have existed for a long time, but they require you to look away from the music player and scroll manually. Transfy integrates directly with your listening session. By detecting the currently playing song on Spotify, we fetch and display the translated lyrics in perfect sync. This seamless integration makes it feel like a native feature of your music player.",
     seoSubTitle2: "Supported Languages",
-    seoSubDesc2: "Currently, Transfy supports translation between major global languages including Korean, English, Japanese, and Chinese. This coverage allows users from different cultural backgrounds to enjoy music from around the world without language barriers. We are continuously working to add more languages and improve translation accuracy through advanced AI models.",
+    seoSubDesc2:
+      "Currently, Transfy supports translation between major global languages including Korean, English, Japanese, and Chinese. This coverage allows users from different cultural backgrounds to enjoy music from around the world without language barriers. We are continuously working to add more languages and improve translation accuracy through advanced AI models.",
 
     footerRights: "Transfy.",
     footerTerms: "Terms of Service",
     footerPrivacy: "Privacy Policy",
-    disclaimer: "This is a non-commercial personal project for educational purposes only. Lyrics data provided by LRCLIB. All rights belong to their respective owners.",
+    disclaimer:
+      "This is a non-commercial personal project for educational purposes only. Lyrics data provided by LRCLIB. All rights belong to their respective owners.",
   },
   ja: {
     subtitle: "リアルタイム歌詞翻訳サービス",
@@ -150,17 +160,22 @@ const UI_TEXT = {
 
     // SEO Content (Japanese)
     seoTitle: "世界をつなぐ音楽体験",
-    seoDesc1: "今日、音楽に国境はありません。K-Pop、J-Pop、洋楽など世界中の音楽を楽しんでいますが、言葉の壁により歌詞の深い意味を逃してしまうこともあります。Transfyはこの問題を解決するため、Spotifyのリアルタイム歌詞翻訳サービスを提供します。",
-    seoDesc2: "新しい言語を学んでいる時や、単に歌詞の意味を知りたい時、Transfyは最高のリスニング体験をお届けします。曲が再生されると即座に翻訳された歌詞が表示され、流れを止めることなく音楽に没頭できます。",
+    seoDesc1:
+      "今日、音楽に国境はありません。K-Pop、J-Pop、洋楽など世界中の音楽を楽しんでいますが、言葉の壁により歌詞の深い意味を逃してしまうこともあります。Transfyはこの問題を解決するため、Spotifyのリアルタイム歌詞翻訳サービスを提供します。",
+    seoDesc2:
+      "新しい言語を学んでいる時や、単に歌詞の意味を知りたい時、Transfyは最高のリスニング体験をお届けします。曲が再生されると即座に翻訳された歌詞が表示され、流れを止めることなく音楽に没頭できます。",
     seoSubTitle1: "なぜリアルタイム翻訳なのか？",
-    seoSubDesc1: "従来の歌詞翻訳は、音楽アプリを閉じて検索し、スクロールしながら見る必要がありました。Transfyは聴いている音楽と完全に同期し、まるで音楽プレイヤーの標準機能のように動作します。",
+    seoSubDesc1:
+      "従来の歌詞翻訳は、音楽アプリを閉じて検索し、スクロールしながら見る必要がありました。Transfyは聴いている音楽と完全に同期し、まるで音楽プレイヤーの標準機能のように動作します。",
     seoSubTitle2: "対応言語",
-    seoSubDesc2: "現在、韓国語、英語、日本語、中国語間の相互翻訳に対応しています。様々な文化圏のユーザーが言葉の壁なく音楽を楽しめるよう、継続的に言語を追加しAIモデルを高度化しています。",
+    seoSubDesc2:
+      "現在、韓国語、英語、日本語、中国語間の相互翻訳に対応しています。様々な文化圏のユーザーが言葉の壁なく音楽を楽しめるよう、継続的に言語を追加しAIモデルを高度化しています。",
 
     footerRights: "Transfy.",
     footerTerms: "利用規約",
     footerPrivacy: "プライバシーポリシー",
-    disclaimer: "このプロジェクトは教育目的で作成された非営利の個人プロジェクトです。歌詞データはLRCLIBから提供されており、すべての著作権は原作者に帰属します。",
+    disclaimer:
+      "このプロジェクトは教育目的で作成された非営利の個人プロジェクトです。歌詞データはLRCLIBから提供されており、すべての著作権は原作者に帰属します。",
   },
   zh: {
     subtitle: "实时歌词翻译服务",
@@ -185,7 +200,8 @@ const UI_TEXT = {
 
     faq: "常见问题",
     faqFreeTitle: "是免费的吗？",
-    faqFreeDesc: "是的，Transfy 完全免费。这是一个用于教育目的的非商业个人项目。",
+    faqFreeDesc:
+      "是的，Transfy 完全免费。这是一个用于教育目的的非商业个人项目。",
     faqSpotifyTitle: "免费版能用吗？",
     faqSpotifyDesc:
       "可以！无论您是 Premium 还是免费用户，只要在播放音乐，就可以使用。",
@@ -194,17 +210,22 @@ const UI_TEXT = {
 
     // SEO Content (Chinese)
     seoTitle: "连接全球的音乐体验",
-    seoDesc1: "在当今互联的世界中，音乐无国界。K-Pop、J-Pop 和欧美流行音乐风靡全球，但语言障碍往往限制了对歌词深层含义的理解。Transfy 通过提供 Spotify 实时歌词翻译服务来弥补这一差距。",
-    seoDesc2: "无论您是在学习新语言，还是仅仅想了解歌词的含义，Transfy 都能为您提供最佳的聆听体验。歌曲播放时，翻译歌词即时显示，让您在不打断流畅度的情况下沉浸在音乐中。",
+    seoDesc1:
+      "在当今互联的世界中，音乐无国界。K-Pop、J-Pop 和欧美流行音乐风靡全球，但语言障碍往往限制了对歌词深层含义的理解。Transfy 通过提供 Spotify 实时歌词翻译服务来弥补这一差距。",
+    seoDesc2:
+      "无论您是在学习新语言，还是仅仅想了解歌词的含义，Transfy 都能为您提供最佳的聆听体验。歌曲播放时，翻译歌词即时显示，让您在不打断流畅度的情况下沉浸在音乐中。",
     seoSubTitle1: "为什么实时翻译很重要？",
-    seoSubDesc1: "传统的歌词翻译需要您关闭音乐应用，手动搜索并滚动浏览。Transfy 与您的聆听过程完美同步，就像音乐播放器的原生功能一样。",
+    seoSubDesc1:
+      "传统的歌词翻译需要您关闭音乐应用，手动搜索并滚动浏览。Transfy 与您的聆听过程完美同步，就像音乐播放器的原生功能一样。",
     seoSubTitle2: "支持语言",
-    seoSubDesc2: "目前支持韩语、英语、日语和中文之间的相互翻译。为了让不同文化背景的用户都能无障碍地享受音乐，我们正在持续添加更多语言并优化 AI 模型。",
+    seoSubDesc2:
+      "目前支持韩语、英语、日语和中文之间的相互翻译。为了让不同文化背景的用户都能无障碍地享受音乐，我们正在持续添加更多语言并优化 AI 模型。",
 
     footerRights: "Transfy.",
     footerTerms: "服务条款",
     footerPrivacy: "隐私政策",
-    disclaimer: "本项目仅供教育目的使用的非商业个人项目。歌词数据由LRCLIB提供，所有权利属于原作者。",
+    disclaimer:
+      "本项目仅供教育目的使用的非商业个人项目。歌词数据由LRCLIB提供，所有权利属于原作者。",
   },
 } as const;
 
@@ -272,8 +293,12 @@ export default function ClientHome({
           provider: "none",
           isInitialized: true,
           // Use provided ID (from URL) if available
-          trackId: initialTrack.id || `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(),
-          isLoadingLyrics: false // Loading finished, but no lyrics
+          trackId:
+            initialTrack.id ||
+            `static-${initialTrack.artist}-${initialTrack.title}`
+              .replace(/\s+/g, "-")
+              .toLowerCase(),
+          isLoadingLyrics: false, // Loading finished, but no lyrics
         });
         return;
       }
@@ -283,9 +308,9 @@ export default function ClientHome({
       if (initialTrack.syncedLyrics) {
         lyricsArray = parseLrc(initialTrack.syncedLyrics);
       } else {
-        const lyricsLines = lyricsText.split('\n');
+        const lyricsLines = lyricsText.split("\n");
         lyricsArray = lyricsLines
-          .filter(line => line.trim().length > 0) // Remove empty lines
+          .filter((line) => line.trim().length > 0) // Remove empty lines
           .map((line, index) => ({
             id: `line-${index}`,
             time: index * 3000, // 3 seconds per line (approximate)
@@ -302,8 +327,12 @@ export default function ClientHome({
         provider: "none",
         isInitialized: true,
         // Use provided ID (from URL) if available, otherwise fallback to generating one
-        trackId: initialTrack.id || `static-${initialTrack.artist}-${initialTrack.title}`.replace(/\s+/g, '-').toLowerCase(),
-        isLoadingLyrics: false // Loading finished
+        trackId:
+          initialTrack.id ||
+          `static-${initialTrack.artist}-${initialTrack.title}`
+            .replace(/\s+/g, "-")
+            .toLowerCase(),
+        isLoadingLyrics: false, // Loading finished
       });
     }
   }, [initialTrack, isLyricPageInitial]);
@@ -320,9 +349,9 @@ export default function ClientHome({
 
   // Handle URL Query Params for consistency (Album Art, Album Name)
   useEffect(() => {
-    const cover = searchParams.get('cover');
-    const album = searchParams.get('album');
-    
+    const cover = searchParams.get("cover");
+    const album = searchParams.get("album");
+
     if (cover || album) {
       usePlayerStore.setState((state) => ({
         ...state,
@@ -390,19 +419,22 @@ export default function ClientHome({
 
   // Dynamic Title
   useEffect(() => {
-    if (
-      (session || isGuestMode) &&
-      isPlaying &&
-      title &&
-      artist
-    ) {
+    if ((session || isGuestMode) && isPlaying && title && artist) {
       document.title = `${title} - ${artist} | Transfy`;
     } else {
       if (!isPlaying) {
         // Removed explicit document.title assignment here to let Next.js Metadata handle it
       }
     }
-  }, [session, isGuestMode, isPlaying, title, artist, t.titleDefault, provider]);
+  }, [
+    session,
+    isGuestMode,
+    isPlaying,
+    title,
+    artist,
+    t.titleDefault,
+    provider,
+  ]);
 
   if (!session && !isGuestMode && !isLyricPage) {
     return (
@@ -447,31 +479,35 @@ export default function ClientHome({
           <div className="mt-8 text-xs text-white/50">{t.permissionNotice}</div>
         </div>
 
-        <div className="max-w-4xl w-full mt-24 text-left space-y-16 pb-20">
+        <div className="max-w-4xl w-full mt-24 text-left space-y-16">
           <section className="space-y-6">
-            <h2 className="text-3xl font-bold text-center mb-12">{t.whyTransfy}</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">
+              {t.whyTransfy}
+            </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">🎵</div>
-                <h3 className="text-xl font-semibold mb-2">{t.featureSyncTitle}</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  {t.featureSyncTitle}
+                </h3>
                 <p className="text-white/70">{t.featureSyncDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">🌏</div>
-                <h3 className="text-xl font-semibold mb-2">{t.featureMultiTitle}</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  {t.featureMultiTitle}
+                </h3>
                 <p className="text-white/70">{t.featureMultiDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
                 <div className="text-4xl mb-4">⚡</div>
-                <h3 className="text-xl font-semibold mb-2">{t.featureFastTitle}</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  {t.featureFastTitle}
+                </h3>
                 <p className="text-white/70">{t.featureFastDesc}</p>
               </div>
             </div>
           </section>
-
-          <div className="w-full flex justify-center py-4">
-            {/* Ad Removed */}
-          </div>
 
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.howItWorks}</h2>
@@ -483,10 +519,6 @@ export default function ClientHome({
             </ol>
           </section>
 
-          <div className="w-full flex justify-center py-4">
-            {/* Ad Removed */}
-          </div>
-
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.faq}</h2>
             <div className="space-y-4">
@@ -495,22 +527,26 @@ export default function ClientHome({
                 <p className="text-white/70">{t.faqFreeDesc}</p>
               </div>
               <div className="bg-white/5 p-6 rounded-xl">
-                <h3 className="font-semibold text-lg mb-2">{t.faqSpotifyTitle}</h3>
+                <h3 className="font-semibold text-lg mb-2">
+                  {t.faqSpotifyTitle}
+                </h3>
                 <p className="text-white/70">{t.faqSpotifyDesc}</p>
               </div>
             </div>
           </section>
-
-          {/* Ad Removed from here - moved to Footer */}
 
           <section className="space-y-6">
             <h2 className="text-3xl font-bold">{t.seoTitle}</h2>
             <article className="prose prose-invert max-w-none text-white/80">
               <p>{t.seoDesc1}</p>
               <p className="mt-4">{t.seoDesc2}</p>
-              <h3 className="text-xl font-semibold mt-6 mb-2">{t.seoSubTitle1}</h3>
+              <h3 className="text-xl font-semibold mt-6 mb-2">
+                {t.seoSubTitle1}
+              </h3>
               <p>{t.seoSubDesc1}</p>
-              <h3 className="text-xl font-semibold mt-6 mb-2">{t.seoSubTitle2}</h3>
+              <h3 className="text-xl font-semibold mt-6 mb-2">
+                {t.seoSubTitle2}
+              </h3>
               <p>{t.seoSubDesc2}</p>
             </article>
           </section>
@@ -522,17 +558,14 @@ export default function ClientHome({
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
       <main className="flex-1 w-full bg-black flex flex-col">
-        <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
+        <LyricsView
+          initialUiLanguage={initialLang}
+          isDummyTrack={isDummyTrack}
+        />
       </main>
 
       {session && <SpotifyPlayer />}
       {session && <BottomPlayer />}
-
-      <div className="fixed top-20 right-4 z-40 hidden xl:block w-[300px] pointer-events-none">
-        {/* Right Sidebar Ad Removed */}
-      </div>
-
-      {/* Bottom Ad Removed */}
     </div>
   );
 }

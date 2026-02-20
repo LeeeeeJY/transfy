@@ -20,16 +20,23 @@ export async function getSyncedLyrics(
   duration: number
 ): Promise<string | null> {
   try {
+    const params: Record<string, string | number> = {
+      track_name: trackName,
+      artist_name: artistName,
+    };
+
+    if (albumName) params.album_name = albumName;
+    if (duration > 0) params.duration = Math.round(duration);
+
     const response = await axios.get<LrcLibResponse>(`${LRCLIB_API_URL}/get`, {
-      params: {
-        track_name: trackName,
-        artist_name: artistName,
-        album_name: albumName,
-        duration: Math.round(duration), // LRCLIB expects seconds
-      },
+      params,
     });
     return response.data.syncedLyrics;
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      // 404 is expected when lyrics are not found, suppress error log
+      return null;
+    }
     console.error("LRCLIB Error:", error);
     return null;
   }
