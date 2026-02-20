@@ -6,6 +6,13 @@ const SCOPES = [
   "user-read-private",
   "user-read-playback-state",
   "user-read-currently-playing",
+  "user-modify-playback-state",
+  "user-read-recently-played",
+  "user-top-read",
+  "user-library-read",
+  "playlist-read-private",
+  "playlist-read-collaborative",
+  "streaming",
 ].join(" ");
 
 interface ExtendedToken extends TokenSet {

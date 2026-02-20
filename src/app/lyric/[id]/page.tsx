@@ -20,10 +20,13 @@ async function getTrackDetails(id: string) {
     };
   }
 
-  // 2. Fallback to Apple Music API
-  const token = process.env.NEXT_PUBLIC_APPLE_DEVELOPER_TOKEN;
-  if (!token) return null;
+  // 2. Fallback to Apple Music API (Removed)
+  // const token = process.env.NEXT_PUBLIC_APPLE_DEVELOPER_TOKEN;
+  // if (!token) return null;
 
+  return null;
+
+  /*
   try {
     const response = await axios.get(
       `https://api.music.apple.com/v1/catalog/us/songs/${id}`,
@@ -38,6 +41,7 @@ async function getTrackDetails(id: string) {
     console.error("Error fetching track details for SEO:", error);
     return null;
   }
+  */
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -48,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: "Transfy - Real-time Lyrics Translator",
       description:
-        "Real-time lyrics translation service for Spotify and Apple Music.",
+        "Real-time lyrics translation service for Spotify.",
     };
   }
 
@@ -96,7 +100,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: "Song Lyrics | Transfy",
-    description: "Real-time lyrics translation for Spotify and Apple Music.",
+    description: "Real-time lyrics translation for Spotify.",
   };
 }
 

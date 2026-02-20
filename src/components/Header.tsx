@@ -45,7 +45,11 @@ const UI_TEXT = {
   },
 };
 
-export default function Header() {
+interface HeaderProps {
+  initialLang?: string;
+}
+
+export default function Header({ initialLang = "en" }: HeaderProps) {
   const { data: session } = useSession();
   const { uiLanguage } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
@@ -54,11 +58,10 @@ export default function Header() {
     setMounted(true);
   }, []);
   
-  // Default to English if language is not supported or undefined
-  // While loading (SSR/Hydration), stick to a stable default (e.g. English) or render empty to match server
-  // Using English as default for server match
-  const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || "en" : "en";
-  const t = UI_TEXT[currentLang] || UI_TEXT.en;
+  // Use initialLang for first render to match server, then switch to store value if available
+  // If store value is not set (e.g. first load), use initialLang
+  const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || initialLang : initialLang;
+  const t = UI_TEXT[currentLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-zinc-800">
@@ -84,33 +87,19 @@ export default function Header() {
             {/* Login/Logout Button */}
             {session ? (
               <button
-                onClick={() => {
-                  signOut({ callbackUrl: "/" });
-                  // Reset player state on logout
-                  usePlayerStore.setState({
-                    isPlaying: false,
-                    title: "",
-                    artist: "",
-                    albumArt: "",
-                    trackId: null,
-                    lyrics: [],
-                    progressMs: 0,
-                    provider: "none",
-                  });
-                  sessionStorage.removeItem("transfy_redirected_track");
-                }}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                {t.logout}
+                <span>{t.logout}</span>
               </button>
             ) : (
               <button
-                onClick={() => alert(t.servicePreparing)}
+                onClick={() => signIn("spotify")}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm bg-[#1DB954] hover:bg-[#1ed760] text-white rounded-lg transition-colors font-medium cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
-                {t.login}
+                <span>{t.login}</span>
               </button>
             )}
           </nav>

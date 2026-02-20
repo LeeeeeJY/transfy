@@ -2,7 +2,7 @@
 
 > Real-time Lyrics with Translation
 > 
-> 실시간 싱크 가사 및 번역 웹 애플리케이션 (Spotify & Apple Music 지원)
+> 실시간 싱크 가사 및 번역 웹 애플리케이션 (Spotify 지원)
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.0-38b2ac)
 
@@ -30,8 +30,8 @@ npm run dev
 ## 🛠️ 기술 스택 (Tech Stack)
 
 - **Frontend:** Next.js 16, React 19, Zustand, Tailwind CSS
-- **Auth:** NextAuth.js v4 (Spotify, Google), Apple MusicKit JS
-- **API:** Spotify Web API, Apple Music API, LRCLIB (Lyrics), Google Translate (Unofficial)
+- **Auth:** NextAuth.js v4 (Spotify)
+- **API:** Spotify Web API, LRCLIB (Lyrics), Google Translate (Unofficial)
 
 ## 📝 라이선스 (License)
 

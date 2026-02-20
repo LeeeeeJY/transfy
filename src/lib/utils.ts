@@ -21,3 +21,32 @@ export function decodeTrackUrlParam(param: string): string {
   // -를 공백으로 되돌리고 디코딩
   return decodeURIComponent(param).replace(/-/g, ' ');
 }
+
+export function cleanTitle(title: string): string {
+  return title
+    .replace(/\s*[\(\[](?:feat|ft|prod|with|remix|mix|ver|edit|deluxe|ost|original|remaster).*?[\)\]]/gi, '')
+    .replace(/\s*-\s*(?:remaster|remix|live).*$/gi, '')
+    .trim();
+}
+
+export function parseLrc(lrc: string): { time: number; text: string }[] {
+  const lines = lrc.split('\n');
+  const result = [];
+  
+  for (const line of lines) {
+    const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+    if (match) {
+      const minutes = parseInt(match[1], 10);
+      const seconds = parseInt(match[2], 10);
+      const milliseconds = parseInt(match[3].padEnd(3, '0'), 10);
+      const time = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
+      const text = match[4].trim();
+      
+      if (text) {
+        result.push({ time, text });
+      }
+    }
+  }
+  
+  return result;
+}

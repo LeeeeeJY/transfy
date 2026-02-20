@@ -25,7 +25,7 @@ export async function getSyncedLyrics(
         track_name: trackName,
         artist_name: artistName,
         album_name: albumName,
-        duration: Math.round(duration / 1000), // LRCLIB expects seconds
+        duration: Math.round(duration), // LRCLIB expects seconds
       },
     });
     return response.data.syncedLyrics;

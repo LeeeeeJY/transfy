@@ -1,11 +1,11 @@
 # Transfy Design Document
 
 ## 1. 프로젝트 개요 (Overview)
-**Transfy**는 음악 서비스(Spotify, Apple Music)에서 현재 재생 중인 음악의 가사를 실시간으로 가져와, 사용자가 선택한 언어로 번역하여 싱크(Sync)에 맞춰 보여주는 웹 애플리케이션입니다.
+**Transfy**는 음악 서비스(Spotify)에서 현재 재생 중인 음악의 가사를 실시간으로 가져와, 사용자가 선택한 언어로 번역하여 싱크(Sync)에 맞춰 보여주는 웹 애플리케이션입니다.
 
 - **목표**: 언어 장벽 없이 음악을 즐길 수 있는 경험 제공
 - **주요 기능**:
-    - 실시간 재생 정보 연동 (Polling / MusicKit JS)
+    - 실시간 재생 정보 연동 (Polling)
     - 실시간 싱크 가사 (Synced Lyrics) 표시 및 자동 스크롤
     - 구글 번역 API를 이용한 다국어 가사 번역
     - 반응형 웹 디자인 (Mobile/Desktop)
@@ -15,19 +15,18 @@
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand (Global Player State)
-- **Auth**: NextAuth.js (Spotify, Google Provider), Apple MusicKit JS
+- **Auth**: NextAuth.js (Spotify Provider)
 - **External APIs**:
-    - Spotify Web API / Apple Music API (Playback State)
+    - Spotify Web API (Playback State)
     - LRCLIB (Open Source Lyrics API)
     - Google Translate API (google-translate-api-x)
 
 ## 3. 시스템 아키텍처 (Architecture)
 
 ### 3.1 데이터 흐름 (Data Flow)
-1. **인증 (Auth)**: 사용자가 `NextAuth` 또는 `MusicKit JS`를 통해 음악 서비스 계정으로 로그인합니다.
+1. **인증 (Auth)**: 사용자가 `NextAuth`를 통해 Spotify 계정으로 로그인합니다.
 2. **상태 동기화 (Sync)**:
     - **Spotify**: 클라이언트(`useSpotifyPoller`)가 주기적으로 API를 호출하여 재생 정보를 가져옵니다.
-    - **Apple Music**: `useAppleMusic` 훅이 MusicKit JS 이벤트를 통해 실시간 상태 변경을 감지합니다.
 3. **가사 검색 (Lyrics Fetching)**:
     - 트랙이 변경되면 `LRCLIB` API에 `track_name`, `artist_name`, `duration`을 보내 싱크 가사를 요청합니다.
     - 가사가 없으면 에러 메시지를 표시합니다.
@@ -55,7 +54,6 @@ src/
 │   ├── LyricsView.tsx  # 가사 뷰어 (자동 스크롤)
 │   ├── PlayerControls.tsx # 하단 컨트롤바 (언어 설정 등)
 ├── hooks/
-│   ├── useAppleMusic.ts    # 애플 뮤직 연동 훅
 │   ├── useLyricsFetcher.ts # 가사 검색 및 번역 로직
 │   └── useSpotifyPoller.ts # 스포티파이 폴링 훅
 ├── lib/

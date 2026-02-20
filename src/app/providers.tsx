@@ -1,11 +1,9 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { useAppleMusic } from "@/hooks/useAppleMusic";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 
 function GlobalHooks() {
-  useAppleMusic();
   useSpotifyPoller();
   return null;
 }

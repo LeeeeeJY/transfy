@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import Script from "next/script";
+import { getLanguageFromHeaders } from "@/lib/server-utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
     siteName: "Transfy",
     locale: "ko_KR",
     type: "website",
-  },
+    },
   twitter: {
     card: "summary_large_image",
     title: "Transfy - 스포티파이 실시간 가사 번역",
@@ -81,14 +82,17 @@ export const metadata: Metadata = {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import BottomPlayer from "@/components/BottomPlayer";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialLang = await getLanguageFromHeaders();
+
   return (
-    <html lang="ko">
+    <html lang={initialLang}>
       <head>
         <script
           type="application/ld+json"
@@ -109,20 +113,16 @@ export default function RootLayout({
             }),
           }}
         />
-        <Script
-          src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen flex flex-col`}
       >
         <Providers>
-          <Header />
-          <div className="pt-14 flex-1 flex flex-col">
+          <Header initialLang={initialLang} />
+          <div className="pt-14 flex-1 flex flex-col pb-24">
             {children}
           </div>
+          <BottomPlayer />
           <Footer />
         </Providers>
       </body>

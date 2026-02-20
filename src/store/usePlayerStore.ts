@@ -1,93 +1,148 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-export interface LyricsLine {
+export interface Track {
   id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string;
+  duration: number; // seconds
+  uri: string;
+}
+
+export interface LyricLine {
+  id?: string;
   time: number; // milliseconds
   text: string;
   translation?: string;
 }
 
-// Helper to detect browser language
-function getBrowserLanguage(): "ko" | "en" | "ja" | "zh" {
-  if (typeof window === "undefined") return "en";
-  const browserLang = window.navigator.language || window.navigator.languages?.[0] || "en";
-  const lower = browserLang.toLowerCase();
-  if (lower.startsWith("ko")) return "ko";
-  if (lower.startsWith("ja")) return "ja";
-  if (lower.startsWith("zh")) return "zh";
-  if (lower.startsWith("en")) return "en";
-  return "en"; // Default to English for unsupported languages
-}
+// Alias for backward compatibility
+export type LyricsLine = LyricLine; 
 
 interface PlayerState {
-  // Playback State
+  currentTrack: Track | null;
   isPlaying: boolean;
-  trackId: string | null;
+  progress: number; // seconds
+  progressMs: number; // milliseconds
+  lyrics: LyricLine[];
+  isPlayerVisible: boolean;
+  isLyricsExpanded: boolean;
+  deviceId: string | null;
+  showTranslation: boolean;
+  
+  // Settings & Environment
+  uiLanguage: string | null;
+  targetLanguage: string;
+  countryCode: string;
+  clientIp: string;
+  isInitialized: boolean;
+  isLoadingLyrics: boolean;
+  provider: "spotify" | "apple" | "none"; // For tracking source
+
+  // Flat properties for easier access (to match ClientHome usage)
   title: string;
   artist: string;
   albumArt: string;
-  duration: number;
-  progressMs: number;
-  lastUpdated: number; // Timestamp for interpolation
-  provider: 'spotify' | 'apple' | 'none';
-
-  // Lyrics State
-  lyrics: LyricsLine[];
-  isLoadingLyrics: boolean;
-
-  // Settings
-  showTranslation: boolean;
-  targetLanguage: string; // Translation Target Language
-  uiLanguage: string; // UI Interface Language
-  countryCode: string; // User's country code (e.g., KR, US)
-  clientIp: string; // User's IP address
-
-  // Navigation State
-  isInitialized: boolean;
+  trackId: string | null;
+  duration: number; // seconds
 
   // Actions
-  setPlayback: (state: Partial<PlayerState>) => void;
-  setLyrics: (lyrics: LyricsLine[]) => void;
-  setLoadingLyrics: (loading: boolean) => void;
-  updateProgress: (ms: number) => void;
-  toggleTranslation: () => void;
+  setTrack: (track: Track) => void;
+  setIsPlaying: (isPlaying: boolean) => void;
+  setProgress: (progress: number) => void;
+  updateProgress: (progressMs: number) => void;
+  setLyrics: (lyrics: LyricLine[]) => void;
+  togglePlayerVisibility: (visible?: boolean) => void;
+  toggleLyricsExpanded: (expanded?: boolean) => void;
+  setDeviceId: (id: string) => void;
+  reset: () => void;
+  setShowTranslation: (show: boolean) => void;
+  
+  // New Actions for Settings
+  setUiLanguage: (lang: string | null) => void;
   setTargetLanguage: (lang: string) => void;
-  setUiLanguage: (lang: string) => void;
-  setCountryCode: (code: string) => void;
-  setClientIp: (ip: string) => void;
-  setInitialized: (val: boolean) => void;
+  setEnvironment: (country: string, ip: string) => void;
+  setIsInitialized: (initialized: boolean) => void;
+  setIsLoadingLyrics: (loading: boolean) => void;
+  setLoadingLyrics: (loading: boolean) => void; // Alias
+  setProvider: (provider: "spotify" | "apple" | "none") => void;
+  
+  // Bulk update
+  setPlayback: (state: Partial<PlayerState>) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
+  currentTrack: null,
   isPlaying: false,
-  trackId: null,
-  title: "",
-  artist: "",
-  albumArt: "",
-  duration: 0,
+  progress: 0,
   progressMs: 0,
-  lastUpdated: Date.now(),
+  lyrics: [],
+  isPlayerVisible: false,
+  isLyricsExpanded: false,
+  deviceId: null,
+  showTranslation: true,
+
+  // Default values
+  uiLanguage: null,
+  targetLanguage: 'ko',
+  countryCode: '',
+  clientIp: '',
+  isInitialized: false,
+  isLoadingLyrics: false,
   provider: 'none',
 
-  lyrics: [],
-  isLoadingLyrics: false,
+  // Flat properties defaults
+  title: '',
+  artist: '',
+  albumArt: '',
+  trackId: null,
+  duration: 0,
 
-  showTranslation: true,
-  targetLanguage: getBrowserLanguage(),
-  uiLanguage: getBrowserLanguage(), // Initialize same as browser
-  countryCode: "Unknown",
-  clientIp: "Unknown",
-
-  isInitialized: false,
-
-  setPlayback: (state) => set((prev) => ({ ...prev, ...state, lastUpdated: Date.now() })),
+  setTrack: (track) => set({ 
+    currentTrack: track, 
+    isPlayerVisible: true,
+    // Sync flat properties
+    title: track.title,
+    artist: track.artist,
+    albumArt: track.albumArt,
+    trackId: track.id,
+    duration: track.duration
+  }),
+  setIsPlaying: (isPlaying) => set({ isPlaying }),
+  setProgress: (progress) => set({ progress, progressMs: progress * 1000 }),
+  updateProgress: (progressMs) => set({ progressMs, progress: progressMs / 1000 }),
   setLyrics: (lyrics) => set({ lyrics }),
-  setLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }),
-  updateProgress: (ms) => set({ progressMs: ms, lastUpdated: Date.now() }),
-  toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
-  setTargetLanguage: (lang) => set({ targetLanguage: lang }),
+  togglePlayerVisibility: (visible) => set((state) => ({ 
+    isPlayerVisible: visible !== undefined ? visible : !state.isPlayerVisible 
+  })),
+  toggleLyricsExpanded: (expanded) => set((state) => ({ 
+    isLyricsExpanded: expanded !== undefined ? expanded : !state.isLyricsExpanded 
+  })),
+  setDeviceId: (id) => set({ deviceId: id }),
+  reset: () => set({ 
+    currentTrack: null, 
+    isPlaying: false, 
+    progress: 0, 
+    progressMs: 0,
+    lyrics: [],
+    provider: 'none',
+    title: '',
+    artist: '',
+    albumArt: '',
+    trackId: null,
+    duration: 0
+  }),
+  setShowTranslation: (show) => set({ showTranslation: show }),
+
+  // New Actions Implementation
   setUiLanguage: (lang) => set({ uiLanguage: lang }),
-  setCountryCode: (code) => set({ countryCode: code }),
-  setClientIp: (ip) => set({ clientIp: ip }),
-  setInitialized: (val) => set({ isInitialized: val }),
+  setTargetLanguage: (lang) => set({ targetLanguage: lang }),
+  setEnvironment: (country, ip) => set({ countryCode: country, clientIp: ip }),
+  setIsInitialized: (initialized) => set({ isInitialized: initialized }),
+  setIsLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }),
+  setLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }), // Alias implementation
+  setProvider: (provider) => set({ provider }),
+  
+  setPlayback: (state) => set((prev) => ({ ...prev, ...state })),
 }));

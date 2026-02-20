@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 const UI_TEXT = {
   ko: {
@@ -28,6 +29,7 @@ const UI_TEXT = {
 };
 
 export default function Footer() {
+  const { data: session } = useSession();
   const { uiLanguage } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
 
@@ -37,6 +39,12 @@ export default function Footer() {
 
   const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || "en" : "en";
   const t = UI_TEXT[currentLang] || UI_TEXT.en;
+
+  // If logged in, hide the footer to prevent "double footer" look with the player bar
+  // The player bar acts as the primary bottom element for logged-in users
+  if (session) {
+    return null;
+  }
 
   return (
     <footer className="w-full bg-black border-t border-zinc-800 flex flex-col items-center">

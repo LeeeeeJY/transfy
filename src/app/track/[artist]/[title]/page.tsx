@@ -3,7 +3,7 @@ import { cache } from "react";
 import ClientHome from "@/components/ClientHome";
 import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
-import { decodeTrackUrlParam } from "@/lib/utils";
+import { decodeTrackUrlParam, cleanTitle } from "@/lib/utils";
 import { searchTracksAction } from "@/app/actions/search";
 import { getLyrics } from "@/lib/api";
 
@@ -44,12 +44,34 @@ const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promis
 
   // 2. Fetch Real Data (Parallel)
   try {
-    // Use Server Action for iTunes search to avoid CORS issues if this code is shared/moved
-    // Though here in Server Component, direct axios is fine, but consistency is good.
-    const [itunesTracks, lrcData] = await Promise.all([
-      searchTracksAction(`${artist} ${title}`, lang), // Pass language
-      getLyrics(artist, title)
-    ]);
+    // Use Server Action for search (handles both Spotify and iTunes fallback)
+    // 1. Try Exact Search
+    let searchResultTracks = await searchTracksAction(`${artist} ${title}`, lang);
+
+    // 2. If no results, try Cleaned Title Search (Remove Feat, etc.)
+    if (searchResultTracks.length === 0) {
+      const cleanedTitle = cleanTitle(title);
+      if (cleanedTitle !== title) {
+        console.log(`Retrying search with cleaned title: ${artist} ${cleanedTitle}`);
+        searchResultTracks = await searchTracksAction(`${artist} ${cleanedTitle}`, lang);
+      }
+    }
+
+    // 3. If still no results, try just Title (Artist might be different format)
+    if (searchResultTracks.length === 0) {
+       console.log(`Retrying search with just title: ${title}`);
+       // Search by title only, then filter by artist locally
+       const titleOnlyResults = await searchTracksAction(title, lang);
+       searchResultTracks = titleOnlyResults.filter(t => 
+         t.artist.toLowerCase().includes(artist.toLowerCase()) || 
+         artist.toLowerCase().includes(t.artist.toLowerCase())
+       );
+    }
+
+    const lrcData = await getLyrics(artist, title);
+
+    // Rename for clarity
+    const itunesTracks = searchResultTracks;
 
     // Find best match from iTunes
     // Filter candidates first
@@ -58,11 +80,16 @@ const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promis
       const tTitle = t.title.toLowerCase();
       const searchArtist = artist.toLowerCase();
       const searchTitle = title.toLowerCase();
+      const cleanedSearchTitle = cleanTitle(title).toLowerCase();
 
-      return (
-        (tArtist.includes(searchArtist) || searchArtist.includes(tArtist)) &&
-        (tTitle.includes(searchTitle) || searchTitle.includes(tTitle))
-      );
+      // Check Artist Match
+      const artistMatch = tArtist.includes(searchArtist) || searchArtist.includes(tArtist);
+
+      // Check Title Match (Original OR Cleaned)
+      const titleMatch = tTitle.includes(searchTitle) || searchTitle.includes(tTitle) || 
+                         tTitle.includes(cleanedSearchTitle) || cleanedSearchTitle.includes(tTitle);
+
+      return artistMatch && titleMatch;
     });
 
     // Sort candidates to find the best match

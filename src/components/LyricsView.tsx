@@ -7,33 +7,38 @@ import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
 import { useRouter, usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Music } from "lucide-react";
+import Dashboard from "@/components/Dashboard";
 
 // UI Text Dictionary
 const UI_TEXT = {
   ko: {
     loading: "가사를 불러오는 중...",
     noLyrics: "가사를 찾을 수 없습니다.",
-    playMusic: "음악을 재생해주세요.",
+    playMusic: "Spotify에서 음악을 재생하거나 검색해주세요.",
     translating: "번역 중...",
+    readyToPlay: "음악을 재생할 준비가 되었습니다.",
   },
   en: {
     loading: "Loading lyrics...",
     noLyrics: "No lyrics found.",
-    playMusic: "Please play music.",
+    playMusic: "Please play music on Spotify or search.",
     translating: "Translating...",
+    readyToPlay: "Ready to play music.",
   },
   ja: {
     loading: "歌詞を読み込み中...",
     noLyrics: "歌詞が見つかりません。",
-    playMusic: "音楽を再生してください。",
+    playMusic: "Spotifyで音楽を再生するか、検索してください。",
     translating: "翻訳中...",
+    readyToPlay: "音楽を再生する準備ができました。",
   },
   zh: {
     loading: "正在加载歌词...",
     noLyrics: "未找到歌词。",
-    playMusic: "请播放音乐。",
+    playMusic: "请在 Spotify 上播放音乐或搜索。",
     translating: "翻译中...",
+    readyToPlay: "准备播放音乐。",
   },
 };
 
@@ -289,9 +294,9 @@ export default function LyricsView({
   // Also treat ID mismatch as loading to prevent flash of old content
   const showLoading = isLoadingLyrics || isIdMismatch;
 
-  if (showLoading) {
+    if (showLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-zinc-500 animate-pulse">
+      <div className="flex min-h-[50vh] items-center justify-center text-zinc-500 animate-pulse bg-black w-full h-full flex-1">
         {t.loading}
       </div>
     );
@@ -338,7 +343,7 @@ export default function LyricsView({
               <p className="text-xl md:text-2xl mb-6 text-zinc-400">
                 {displayArtist}
               </p>
-              {displayArt && (
+              {displayArt && displayArt !== "/file.svg" ? (
                 <div className="flex justify-center mb-8">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -346,6 +351,12 @@ export default function LyricsView({
                     alt={`${displayTitle} album art`}
                     className="w-48 h-48 rounded-lg shadow-xl"
                   />
+                </div>
+              ) : (
+                <div className="flex justify-center mb-8">
+                  <div className="w-48 h-48 bg-zinc-800 rounded-lg shadow-xl flex items-center justify-center">
+                    <Music className="w-20 h-20 text-zinc-600" />
+                  </div>
                 </div>
               )}
             </div>
@@ -394,7 +405,7 @@ export default function LyricsView({
               <p className="text-xl md:text-2xl mb-6 text-zinc-400">
                 {displayArtist || "Unknown Artist"}
               </p>
-              {displayArt && (
+              {displayArt && displayArt !== "/file.svg" ? (
                 <div className="flex justify-center mb-8">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -402,6 +413,12 @@ export default function LyricsView({
                     alt={`${displayTitle} album art`}
                     className="w-48 h-48 rounded-lg shadow-xl"
                   />
+                </div>
+              ) : (
+                <div className="flex justify-center mb-8">
+                  <div className="w-48 h-48 bg-zinc-800 rounded-lg shadow-xl flex items-center justify-center">
+                    <Music className="w-20 h-20 text-zinc-600" />
+                  </div>
                 </div>
               )}
             </div>
@@ -416,12 +433,10 @@ export default function LyricsView({
       );
     }
 
-    // Default "no lyrics" screen
+    // Default "idle" screen for Home Page
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-zinc-500 bg-black">
-        <div className="text-center">
-          <p className="mb-2">{t.noLyrics}</p>
-        </div>
+      <div className="flex min-h-[50vh] flex-col items-center justify-start text-zinc-500 bg-black w-full h-full flex-1">
+        <Dashboard initialUiLanguage={currentUiLang} />
       </div>
     );
   }

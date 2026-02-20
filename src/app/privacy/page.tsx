@@ -8,7 +8,7 @@ const PRIVACY_TEXT = {
     collectTitle: "1. 수집하는 정보",
     collectDesc: "Transfy를 사용할 때 다음과 같은 정보를 수집할 수 있습니다:",
     collectList: [
-      "가사 동기화를 위한 음악 서비스 계정 정보 (Spotify, Apple Music 등)",
+      "가사 동기화를 위한 음악 서비스 계정 정보 (Spotify)",
       "서비스 개선을 위한 사용 데이터 (예: 번역된 노래, 언어 설정)",
       "분석 및 보안을 위한 브라우저 및 기기 정보 (IP 주소, 사용자 에이전트)"
     ],
@@ -27,7 +27,7 @@ const PRIVACY_TEXT = {
     collectTitle: "1. Information We Collect",
     collectDesc: "When you use Transfy, we may collect the following information:",
     collectList: [
-      "Music Service Account Information (Spotify, Apple Music, etc.) to sync lyrics.",
+      "Music Service Account Information (Spotify) to sync lyrics.",
       "Usage Data (e.g., songs translated, language preferences) for service improvement.",
       "Browser and Device Information (IP address, User Agent) for analytics and security."
     ],

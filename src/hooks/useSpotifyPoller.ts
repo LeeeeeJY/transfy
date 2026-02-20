@@ -29,6 +29,10 @@ export function useSpotifyPoller() {
         return;
       }
 
+      // Check if local SDK is active (playing) to avoid conflict
+      const current = usePlayerStore.getState();
+      const isLocalSdkPlaying = current.provider === 'spotify' && current.isPlaying && current.deviceId && data.device.id === current.deviceId;
+
       setPlayback({
         isPlaying: data.is_playing,
         trackId: data.item.id,
@@ -36,9 +40,13 @@ export function useSpotifyPoller() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         artist: data.item.artists.map((a: any) => a.name).join(", "),
         albumArt: data.item.album.images[0]?.url,
-        duration: data.item.duration_ms,
-        progressMs: data.progress_ms,
+        duration: data.item.duration_ms / 1000, // Convert to seconds for store consistency
+        // Only update progress from poller if not playing locally (to avoid stutter)
+        // Or if the difference is significant (e.g. seek)
+        progressMs: isLocalSdkPlaying ? current.progressMs : data.progress_ms, 
+        progress: isLocalSdkPlaying ? current.progress : data.progress_ms / 1000,
         provider: 'spotify',
+        isPlayerVisible: true, // Always show player when data is available
       });
     };
 

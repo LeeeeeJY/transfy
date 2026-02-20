@@ -3,14 +3,16 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
-import PlayerControls from "@/components/PlayerControls";
+import BottomPlayer from "@/components/BottomPlayer";
+import SpotifyPlayer from "@/components/SpotifyPlayer";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
+import { useLyricsFetcher } from "@/hooks/useLyricsFetcher";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Search, LogIn, LogOut } from "lucide-react";
 import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
-import { encodeTrackUrl } from "@/lib/utils";
+import { encodeTrackUrl, parseLrc } from "@/lib/utils";
 
 const UI_TEXT = {
   ko: {
@@ -277,14 +279,20 @@ export default function ClientHome({
         return;
       }
 
-      const lyricsLines = lyricsText.split('\n');
-      const lyricsArray: LyricsLine[] = lyricsLines
-        .filter(line => line.trim().length > 0) // Remove empty lines
-        .map((line, index) => ({
-          id: `line-${index}`,
-          time: index * 3000, // 3 seconds per line (approximate)
-          text: line.trim(),
-        }));
+      let lyricsArray: LyricsLine[] = [];
+
+      if (initialTrack.syncedLyrics) {
+        lyricsArray = parseLrc(initialTrack.syncedLyrics);
+      } else {
+        const lyricsLines = lyricsText.split('\n');
+        lyricsArray = lyricsLines
+          .filter(line => line.trim().length > 0) // Remove empty lines
+          .map((line, index) => ({
+            id: `line-${index}`,
+            time: index * 3000, // 3 seconds per line (approximate)
+            text: line.trim(),
+          }));
+      }
 
       usePlayerStore.setState({
         title: initialTrack.title,
@@ -305,10 +313,27 @@ export default function ClientHome({
   const uiLang = initialLang;
   const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
-  useSpotifyPoller();
+  useSpotifyPoller(); // Re-enabled for cross-device sync
+  useLyricsFetcher(); // Fetch lyrics when track changes
 
   const { title, artist, isPlaying, trackId, provider } = usePlayerStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle URL Query Params for consistency (Album Art, Album Name)
+  useEffect(() => {
+    const cover = searchParams.get('cover');
+    const album = searchParams.get('album');
+    
+    if (cover || album) {
+      usePlayerStore.setState((state) => ({
+        ...state,
+        albumArt: cover || state.albumArt,
+        // We don't store album name in store yet, but could add it if needed
+        // For now, cover art is the main visual consistency issue
+      }));
+    }
+  }, [searchParams]);
 
   // Navigation Logic
   useEffect(() => {
@@ -347,7 +372,7 @@ export default function ClientHome({
         albumArt: "",
         trackId: null,
         lyrics: [],
-        progressMs: 0,
+        progress: 0,
         provider: "none",
       });
       sessionStorage.removeItem("transfy_redirected_track");
@@ -403,7 +428,7 @@ export default function ClientHome({
 
           <div className="space-y-4">
             <button
-              onClick={() => alert(t.servicePreparing)}
+              onClick={() => signIn("spotify")}
               className="w-full flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -502,34 +527,14 @@ export default function ClientHome({
         <LyricsView initialUiLanguage={initialLang} isDummyTrack={isDummyTrack} />
       </main>
 
+      {session && <SpotifyPlayer />}
+      {session && <BottomPlayer />}
+
       <div className="fixed top-20 right-4 z-40 hidden xl:block w-[300px] pointer-events-none">
         {/* Right Sidebar Ad Removed */}
       </div>
 
       {/* Bottom Ad Removed */}
-
-      <PlayerControls
-        onLogout={
-          isGuestMode
-            ? () => {
-              setIsGuestMode(false);
-              usePlayerStore.setState({
-                isPlaying: false,
-                title: "",
-                artist: "",
-                albumArt: "",
-                trackId: null,
-                lyrics: [],
-                progressMs: 0,
-                provider: "none",
-              });
-              sessionStorage.removeItem("transfy_redirected_track");
-              setIsLyricPage(false);
-              router.push("/");
-            }
-            : undefined
-        }
-      />
     </div>
   );
 }
