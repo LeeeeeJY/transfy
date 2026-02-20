@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
 import BottomPlayer from "@/components/BottomPlayer";
@@ -8,10 +8,9 @@ import SpotifyPlayer from "@/components/SpotifyPlayer";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 import { useLyricsFetcher } from "@/hooks/useLyricsFetcher";
 import { useState, useEffect, useRef } from "react";
-import { Sparkles, Search, LogIn, LogOut } from "lucide-react";
+import { Search } from "lucide-react";
 import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
 import { useRouter, useSearchParams } from "next/navigation";
-import { POPULAR_SONGS } from "@/data/dummySongs";
 import { encodeTrackUrl, parseLrc } from "@/lib/utils";
 
 const UI_TEXT = {
@@ -239,7 +238,7 @@ export default function ClientHome({
   const [isGuestMode, setIsGuestMode] = useState(false);
   const initialized = useRef(false);
   const { isInitialized } = usePlayerStore();
-  const [isLyricPage, setIsLyricPage] = useState(isLyricPageInitial);
+  const [isLyricPage] = useState(isLyricPageInitial);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -309,7 +308,6 @@ export default function ClientHome({
     }
   }, [initialTrack, isLyricPageInitial]);
 
-  const _unusedTargetLang = usePlayerStore((state) => state.targetLanguage);
   const uiLang = initialLang;
   const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Loader2, TrendingUp, History, PlayCircle, FileText, User } from 'lucide-react';
+import { Search, Loader2, TrendingUp, PlayCircle, FileText } from 'lucide-react';
 import { searchTracksAction, getTopChartsAction, Track } from '@/app/actions/search';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useSession } from 'next-auth/react';

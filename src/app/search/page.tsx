@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from 'react';
 import { getLanguageFromHeaders } from "@/lib/server-utils";
 import SearchClient from "@/components/SearchClient";

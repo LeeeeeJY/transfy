@@ -57,7 +57,7 @@ export const getLyrics = async (artist: string, title: string, duration?: number
     try {
       const response = await axios.get('https://lrclib.net/api/get', { params });
       return response.data;
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -66,7 +66,7 @@ export const getLyrics = async (artist: string, title: string, duration?: number
     try {
       const response = await axios.get('https://lrclib.net/api/search', { params: { q } });
       return response.data[0]; // Best match
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -89,7 +89,7 @@ export const getLyrics = async (artist: string, title: string, duration?: number
         });
         // Find a track with similar duration (+- 5 seconds tolerance)
         data = searchRes.data.find((t: any) => Math.abs(t.duration - duration) < 5);
-       } catch(e) {}
+       } catch {}
     }
   }
 
@@ -125,7 +125,7 @@ export const getLyrics = async (artist: string, title: string, duration?: number
         // Without duration, find exact title match to reduce false positives
         data = searchRes.data.find((t: any) => t.trackName.toLowerCase() === title.toLowerCase());
       }
-    } catch(e) {}
+    } catch {}
   }
 
   if (data) {

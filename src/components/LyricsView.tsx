@@ -4,7 +4,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
 import { translateText } from "@/app/actions/translate";
 import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
 import { Loader2, Music } from "lucide-react";
@@ -49,9 +49,8 @@ interface LyricsViewProps {
 
 export default function LyricsView({
   initialUiLanguage,
-  isDummyTrack,
+  isDummyTrack: _isDummyTrack,
 }: LyricsViewProps) {
-  const router = useRouter(); // Initialize router
   const { data: session } = useSession();
   const {
     lyrics,
@@ -59,8 +58,6 @@ export default function LyricsView({
     isLoadingLyrics,
     showTranslation,
     setLyrics,
-    setPlayback,
-    updateProgress,
     targetLanguage,
     uiLanguage,
     countryCode,
@@ -73,7 +70,7 @@ export default function LyricsView({
 
   const [isTranslating, setIsTranslating] = useState(false);
   const pathname = usePathname();
-  const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
+  const [currentTrackId] = useState<string | null>(null);
 
   // Extract trackId from URL using pathname prop for consistency
   const getTrackIdFromUrl = (): string | null => {
@@ -122,7 +119,7 @@ export default function LyricsView({
 
   // Use initialUiLanguage for the first render to match server
   // Then fallback to store value (which syncs with client preference)
-  const currentUiLang = initialUiLanguage || uiLanguage;
+  const currentUiLang = initialUiLanguage || uiLanguage || "en";
 
   // Get current track info from store for logging
   const { title, artist } = usePlayerStore.getState();
@@ -285,7 +282,6 @@ export default function LyricsView({
 
   // Determine if we should show loading state for dummy tracks
   // urlTrackId is already declared above
-  const isDummy = isDummyTrack ?? (urlTrackId?.startsWith("dummy-") ?? false);
   const dummySong = urlTrackId ? POPULAR_SONGS.find(s => s.id === urlTrackId) : null;
 
   // Use store loading state directly.

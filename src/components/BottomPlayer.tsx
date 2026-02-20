@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { fetchLyrics } from "@/lib/lyrics";
 import Image from "next/image";
 import { Play, Pause, SkipForward, SkipBack, Maximize2, Minimize2, Globe, Languages } from "lucide-react";
 import { play, pause, next, previous } from "@/lib/spotify";
@@ -18,14 +16,9 @@ export default function BottomPlayer() {
     isPlaying, 
     progress, 
     lyrics,
-    isPlayerVisible, 
     isLyricsExpanded,
     setIsPlaying, 
-    setProgress, 
-    setLyrics,
-    setDeviceId,
     toggleLyricsExpanded,
-    deviceId,
     targetLanguage,
     setTargetLanguage,
     showTranslation,

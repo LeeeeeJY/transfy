@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import axios from "axios";
 import ClientHome from "@/components/ClientHome";
 import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
@@ -105,7 +104,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function LyricPage({ params }: Props) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id } = await params;
 
   // Reuse ClientHome layout but with initial track ID context if needed.

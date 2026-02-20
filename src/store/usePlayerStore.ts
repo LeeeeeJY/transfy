@@ -58,6 +58,7 @@ interface PlayerState {
   setDeviceId: (id: string) => void;
   reset: () => void;
   setShowTranslation: (show: boolean) => void;
+  toggleTranslation: () => void;
   
   // New Actions for Settings
   setUiLanguage: (lang: string | null) => void;
@@ -134,6 +135,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     duration: 0
   }),
   setShowTranslation: (show) => set({ showTranslation: show }),
+  toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
 
   // New Actions Implementation
   setUiLanguage: (lang) => set({ uiLanguage: lang }),

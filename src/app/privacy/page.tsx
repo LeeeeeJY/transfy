@@ -80,7 +80,7 @@ export default async function PrivacyPage() {
         </section>
 
         <div className="pt-8 border-t border-zinc-800">
-          <a href="/" className="text-blue-400 hover:underline">{t.back}</a>
+          <Link href="/" className="text-blue-400 hover:underline">{t.back}</Link>
         </div>
       </div>
     </div>
