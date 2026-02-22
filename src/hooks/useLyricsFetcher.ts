@@ -18,125 +18,124 @@ export function useLyricsFetcher() {
     countryCode,
     setLyrics,
     setLoadingLyrics,
+    originalLyrics,
+    setOriginalLyrics,
   } = usePlayerStore();
 
   useEffect(() => {
-    // Skip if no trackId or if it's a dummy track (Test Mode - though we are removing Test Mode, we might keep check for safety)
     if (!trackId || trackId.startsWith("dummy-") || !title || !artist) return;
 
-    // We don't strictly need session for lyrics (LRCLIB is public), 
-    // but we use it for logging if available.
+    const fetchAndProcessLyrics = async () => {
+      // 1. Check if we need to fetch new lyrics
+      // We check if we have original lyrics for THIS track
+      const hasLyricsForCurrentTrack = originalLyrics.length > 0 && originalLyrics[0].id?.startsWith(trackId);
+      
+      let lyricsToProcess = originalLyrics;
 
-    const fetchLyricsAndTranslate = async () => {
-      setLoadingLyrics(true);
-      setLyrics([]); // Clear previous lyrics
+      if (!hasLyricsForCurrentTrack) {
+        setLoadingLyrics(true);
+        setLyrics([]); // Clear display while loading
+        // Don't clear originalLyrics yet, we might reuse them if fetch fails? No, clear them.
+        setOriginalLyrics([]); 
+        
+        // Try to fetch
+        const lrcRaw = await getSyncedLyrics(title, artist, "", duration);
+        
+        if (!lrcRaw) {
+          setLyrics([]);
+          setOriginalLyrics([]);
+          setLoadingLyrics(false);
+          return;
+        }
 
-      // 1. Fetch LRC
-      const lrcRaw = await getSyncedLyrics(title, artist, "", duration);
+        const parsedLyrics = parseLrc(lrcRaw);
+        lyricsToProcess = parsedLyrics.map((line, idx) => ({
+          ...line,
+          id: `${trackId}-${idx}`,
+        }));
+        
+        setOriginalLyrics(lyricsToProcess);
+      } else {
+        // Use existing lyrics
+        lyricsToProcess = originalLyrics;
+      }
 
-      if (!lrcRaw) {
-        setLyrics([]);
+      // 2. Process Lyrics (Translate or Pass-through)
+      if (!showTranslation) {
+        setLyrics(lyricsToProcess);
         setLoadingLyrics(false);
         return;
       }
 
-      const parsedLyrics = parseLrc(lrcRaw);
-      const linesWithId = parsedLyrics.map((line, idx) => ({
-        ...line,
-        id: `${trackId}-${idx}`, // Unique ID
-      }));
+      // Translation Logic
+      const cachedData = await getCachedLyrics(trackId, targetLanguage);
+      
+      const ua = typeof window !== "undefined" ? window.navigator.userAgent || "unknown" : "unknown";
+      const ref = typeof document !== "undefined" ? document.referrer || "unknown" : "unknown";
+      const isMobile = /mobile|android|iphone|ipad/i.test(ua.toLowerCase());
+      const clientInfo = {
+        user_agent: ua,
+        referer: ref,
+        device_type: isMobile ? "mobile" : "desktop",
+        ip_address: clientIp,
+      };
 
-      // 2. Translate if needed
-      if (showTranslation) {
-        const cachedData = await getCachedLyrics(trackId, targetLanguage);
+      if (cachedData) {
+        console.log("Using cached lyrics for:", trackId);
+        setLyrics(cachedData);
+        
+        await logActivity("translate_real", {
+          user_email: session?.user?.email || "anonymous",
+          track_name: title,
+          artist,
+          target_lang: targetLanguage,
+          is_cached: true,
+          country_code: countryCode,
+          ...clientInfo,
+        });
+      } else {
+        const textsToTranslate = lyricsToProcess.map((l) => l.text);
+        try {
+          const translations = await translateText(textsToTranslate, targetLanguage);
+          const finalLyrics = lyricsToProcess.map((line, i) => ({
+            ...line,
+            translation: translations[i] || "",
+          }));
+          
+          setLyrics(finalLyrics);
+          await saveCachedLyrics(trackId, targetLanguage, finalLyrics);
 
-        const ua =
-          typeof window !== "undefined"
-            ? window.navigator.userAgent || "unknown"
-            : "unknown";
-        const ref =
-          typeof document !== "undefined"
-            ? document.referrer || "unknown"
-            : "unknown";
-        const isMobile = /mobile|android|iphone|ipad/i.test(
-          ua.toLowerCase()
-        );
-        const clientInfo = {
-          user_agent: ua,
-          referer: ref,
-          device_type: isMobile ? "mobile" : "desktop",
-          ip_address: clientIp,
-        };
-
-        if (cachedData) {
-          console.log("Using cached lyrics for:", trackId);
-          setLyrics(cachedData);
-
-          // Log Activity (Cache Hit)
           await logActivity("translate_real", {
             user_email: session?.user?.email || "anonymous",
             track_name: title,
             artist,
             target_lang: targetLanguage,
-            is_cached: true,
+            is_cached: false,
             country_code: countryCode,
             ...clientInfo,
           });
-        } else {
-          const textsToTranslate = linesWithId.map((l) => l.text);
-          try {
-            // Batch translate
-            const translations = await translateText(
-              textsToTranslate,
-              targetLanguage
-            );
-
-            const finalLyrics = linesWithId.map((line, i) => ({
-              ...line,
-              translation: translations[i] || "",
-            }));
-            setLyrics(finalLyrics);
-
-            // Save to Cache
-            await saveCachedLyrics(trackId, targetLanguage, finalLyrics);
-
-            // Log Activity (API Call)
-            await logActivity("translate_real", {
-              user_email: session?.user?.email || "anonymous",
-              track_name: title,
-              artist,
-              target_lang: targetLanguage,
-              is_cached: false,
-              country_code: countryCode,
-              ...clientInfo,
-            });
-          } catch (e) {
-            console.error("Translation failed", e);
-            setLyrics(linesWithId); // Fallback to original
-          }
+        } catch (e) {
+          console.error("Translation failed", e);
+          setLyrics(lyricsToProcess);
         }
-      } else {
-        setLyrics(linesWithId);
       }
-
       setLoadingLyrics(false);
     };
 
-    fetchLyricsAndTranslate();
+    fetchAndProcessLyrics();
   }, [
     trackId, 
-    // We intentionally exclude title/artist/duration to avoid re-fetching if they change slightly during same trackId
-    // But usually trackId changes with them.
+    title, 
+    artist, 
+    duration, 
     targetLanguage, 
     showTranslation, 
-    setLyrics, 
-    setLoadingLyrics,
-    session, // for logging
-    clientIp,
-    countryCode,
-    // dependencies for effect function
-    title,
-    artist,
-    duration
+    // We include dependencies that should trigger re-processing
+    // Note: originalLyrics is NOT in dependency array to avoid loops when we update it.
+    // We rely on trackId change to trigger fetch, and local variable lyricsToProcess to carry data.
+    // However, if showTranslation changes, we need access to latest originalLyrics.
+    // Since usePlayerStore hook runs on every store update, the 'originalLyrics' variable in scope 
+    // will be fresh when this effect runs due to showTranslation change.
   ]);
+
 }

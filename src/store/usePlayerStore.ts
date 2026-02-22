@@ -26,6 +26,7 @@ interface PlayerState {
   progress: number; // seconds
   progressMs: number; // milliseconds
   lyrics: LyricLine[];
+  originalLyrics: LyricLine[]; // Store original lyrics to avoid re-fetching
   isPlayerVisible: boolean;
   isLyricsExpanded: boolean;
   deviceId: string | null;
@@ -56,6 +57,7 @@ interface PlayerState {
   setProgress: (progress: number) => void;
   updateProgress: (progressMs: number) => void;
   setLyrics: (lyrics: LyricLine[]) => void;
+  setOriginalLyrics: (lyrics: LyricLine[]) => void;
   togglePlayerVisibility: (visible?: boolean) => void;
   toggleLyricsExpanded: (expanded?: boolean) => void;
   setDeviceId: (id: string) => void;
@@ -85,6 +87,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   progress: 0,
   progressMs: 0,
   lyrics: [],
+  originalLyrics: [],
   isPlayerVisible: false,
   isLyricsExpanded: false,
   deviceId: null,
@@ -122,7 +125,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setProgress: (progress) => set({ progress, progressMs: progress * 1000 }),
   updateProgress: (progressMs) => set({ progressMs, progress: progressMs / 1000 }),
   setLyrics: (lyrics) => set({ lyrics }),
-  togglePlayerVisibility: (visible) => set((state) => ({ 
+  setOriginalLyrics: (lyrics) => set({ originalLyrics: lyrics }),
+  togglePlayerVisibility: (visible) => set((state) => ({  
     isPlayerVisible: visible !== undefined ? visible : !state.isPlayerVisible 
   })),
   toggleLyricsExpanded: (expanded) => set((state) => ({ 
@@ -135,6 +139,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     progress: 0, 
     progressMs: 0,
     lyrics: [],
+    originalLyrics: [],
     provider: 'none',
     title: '',
     artist: '',
