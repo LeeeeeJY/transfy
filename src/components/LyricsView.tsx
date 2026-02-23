@@ -7,7 +7,7 @@ import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
 import { usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
-import { Loader2, Music, Globe, Languages } from "lucide-react";
+import { Loader2, Music } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 
 // UI Text Dictionary
@@ -15,6 +15,8 @@ const UI_TEXT = {
   ko: {
     loading: "가사를 불러오는 중...",
     noLyrics: "가사를 찾을 수 없습니다.",
+    noLyricsHint: "가사 서버 연결이 불안정할 수 있습니다.",
+    retryLyrics: "가사 다시 불러오기",
     playMusic: "Spotify에서 음악을 재생하거나 검색해주세요.",
     translating: "번역 중...",
     readyToPlay: "음악을 재생할 준비가 되었습니다.",
@@ -22,6 +24,8 @@ const UI_TEXT = {
   en: {
     loading: "Loading lyrics...",
     noLyrics: "No lyrics found.",
+    noLyricsHint: "Lyrics server may be temporarily unavailable.",
+    retryLyrics: "Retry loading lyrics",
     playMusic: "Please play music on Spotify or search.",
     translating: "Translating...",
     readyToPlay: "Ready to play music.",
@@ -29,6 +33,8 @@ const UI_TEXT = {
   ja: {
     loading: "歌詞を読み込み中...",
     noLyrics: "歌詞が見つかりません。",
+    noLyricsHint: "歌詞サーバーが不安定な場合があります。",
+    retryLyrics: "歌詞を再読み込み",
     playMusic: "Spotifyで音楽を再生するか、検索してください。",
     translating: "翻訳中...",
     readyToPlay: "音楽を再生する準備ができました。",
@@ -36,6 +42,8 @@ const UI_TEXT = {
   zh: {
     loading: "正在加载歌词...",
     noLyrics: "未找到歌词。",
+    noLyricsHint: "歌词服务可能暂时不稳定。",
+    retryLyrics: "重新加载歌词",
     playMusic: "请在 Spotify 上播放音乐或搜索。",
     translating: "翻译中...",
     readyToPlay: "准备播放音乐。",
@@ -58,11 +66,13 @@ export default function LyricsView({
     isLoadingLyrics,
     showTranslation,
     setLyrics,
+    setLoadingLyrics,
+    setOriginalLyrics,
+    setLyricsRetryTrigger,
     targetLanguage,
     uiLanguage,
     countryCode,
     clientIp,
-    setLoadingLyrics,
     trackId: storeTrackId,
     setLyrics: setStoreLyrics,
     setPlayback: setStorePlayback
@@ -300,7 +310,16 @@ export default function LyricsView({
   // Also treat ID mismatch as loading to prevent flash of old content
   const showLoading = isLoadingLyrics || isIdMismatch;
 
-    if (showLoading) {
+  // 홈(/)에서는 항상 최근 들은 노래 대시보드 표시
+  if (pathname === "/" || pathname === "") {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-start bg-black w-full h-full flex-1">
+        <Dashboard initialUiLanguage={currentUiLang} />
+      </div>
+    );
+  }
+
+  if (showLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-zinc-500 animate-pulse bg-black w-full h-full flex-1">
         {t.loading}
@@ -431,6 +450,19 @@ export default function LyricsView({
             <div className="flex flex-col items-center justify-center text-zinc-500 py-12">
               <div className="text-center max-w-md px-4">
                 <p className="mb-2 text-lg">{t.noLyrics}</p>
+                <p className="mb-4 text-sm text-zinc-600">{t.noLyricsHint}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOriginalLyrics([]);
+                    setLyrics([]);
+                    setLoadingLyrics(true);
+                    setLyricsRetryTrigger();
+                  }}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium transition-colors"
+                >
+                  {t.retryLyrics}
+                </button>
               </div>
             </div>
           </div>
@@ -490,33 +522,6 @@ export default function LyricsView({
               </div>
             </div>
           )}
-
-          {/* Controls (Language & Translation Toggle) */}
-          <div className="flex justify-center items-center gap-4 mb-4">
-            <div className="flex items-center gap-2 bg-zinc-800/50 rounded-full px-3 py-1.5">
-              <Globe className="w-4 h-4 text-zinc-400" />
-              <select
-                className="bg-transparent text-sm focus:outline-none text-white w-auto cursor-pointer"
-                value={targetLanguage}
-                onChange={(e) => usePlayerStore.getState().setTargetLanguage(e.target.value)}
-              >
-                <option value="ko" className="bg-zinc-800 text-white">한국어</option>
-                <option value="en" className="bg-zinc-800 text-white">English</option>
-                <option value="ja" className="bg-zinc-800 text-white">日本語</option>
-                <option value="zh" className="bg-zinc-800 text-white">中文</option>
-              </select>
-            </div>
-            <button
-              onClick={() => usePlayerStore.getState().toggleTranslation()}
-              className={`p-2 rounded-full transition-colors ${showTranslation
-                ? "bg-blue-900/30 text-blue-400"
-                : "bg-zinc-800/50 text-zinc-400"
-                }`}
-              title="번역 켜기/끄기"
-            >
-              <Languages className="w-5 h-5" />
-            </button>
-          </div>
         </div>
 
         <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-32">
@@ -524,7 +529,7 @@ export default function LyricsView({
             const isActive = index === activeIndex;
             return (
               <div
-                key={line.id}
+                key={line.id ?? `line-${index}`}
                 ref={isActive ? activeLineRef : null}
                 className={`transition-all duration-500 ease-in-out cursor-pointer ${isActive
                   ? "opacity-100 scale-105 origin-left"

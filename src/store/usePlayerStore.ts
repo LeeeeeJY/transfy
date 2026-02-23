@@ -79,6 +79,9 @@ interface PlayerState {
   
   // Bulk update
   setPlayback: (state: Partial<PlayerState>) => void;
+  /** 가사 다시 불러오기 시 트리거 (증가시키면 useLyricsFetcher 재실행) */
+  lyricsRetryTrigger: number;
+  setLyricsRetryTrigger: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -110,6 +113,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   albumArt: '',
   trackId: null,
   duration: 0,
+  lyricsRetryTrigger: 0,
 
   setTrack: (track) => set({ 
     currentTrack: track, 
@@ -160,6 +164,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setProvider: (provider) => set({ provider }),
   setIsSdkReady: (isReady) => set({ isSdkReady: isReady }),
   setPlayer: (player) => set({ player }),
-  
   setPlayback: (state) => set((prev) => ({ ...prev, ...state })),
+  setLyricsRetryTrigger: () => set((s) => ({ lyricsRetryTrigger: s.lyricsRetryTrigger + 1 })),
 }));

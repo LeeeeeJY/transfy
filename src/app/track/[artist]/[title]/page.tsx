@@ -5,7 +5,6 @@ import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/li
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { decodeTrackUrlParam, cleanTitle } from "@/lib/utils";
 import { searchTracksAction } from "@/app/actions/search";
-import { getLyrics } from "@/lib/api";
 
 type Props = {
   params: Promise<{ artist: string; title: string }>;
@@ -68,9 +67,7 @@ const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promis
        );
     }
 
-    const lrcData = await getLyrics(artist, title);
-
-    // Rename for clarity
+    // 가사는 서버에서 LRCLIB 호출하지 않음 (타임아웃/불안정 시 페이지 16초+ 대기 방지). 클라이언트에서만 요청.
     const itunesTracks = searchResultTracks;
 
     // Find best match from iTunes
@@ -112,34 +109,16 @@ const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promis
 
     const trackMetadata = candidates[0];
 
-    // If initial lyrics fetch failed, try again with iTunes metadata (which might have correct localized title)
-    let finalLyrics = lrcData.plainLyrics;
-    let finalSyncedLyrics = lrcData.syncedLyrics;
-
-    if (!finalLyrics && trackMetadata) {
-      // Retry using iTunes metadata (Artist Name, Track Name, Duration, Album)
-      // This is crucial for tracks where user input language differs from lyrics DB language
-      console.log(`Retry fetching lyrics with metadata: ${trackMetadata.artist} - ${trackMetadata.title}`);
-      const retryLrcData = await getLyrics(
-        trackMetadata.artist,
-        trackMetadata.title,
-        trackMetadata.duration,
-        trackMetadata.album
-      );
-      finalLyrics = retryLrcData.plainLyrics;
-      finalSyncedLyrics = retryLrcData.syncedLyrics;
-    }
-
-    if (!trackMetadata && !finalLyrics) {
+    if (!trackMetadata) {
       return null;
     }
 
     return {
-      title: trackMetadata?.title || title,
-      artist: trackMetadata?.artist || artist,
-      albumArt: trackMetadata?.albumArt || "/file.svg", // Fallback image
-      lyrics: finalLyrics || "Lyrics not found.",
-      syncedLyrics: finalSyncedLyrics
+      title: trackMetadata.title || title,
+      artist: trackMetadata.artist || artist,
+      albumArt: trackMetadata.albumArt || "/file.svg",
+      lyrics: "Lyrics not found.", // 클라이언트(useLyricsFetcher)에서 LRCLIB 호출
+      syncedLyrics: null
     };
   } catch (e) {
     console.error("Error fetching track info:", e);

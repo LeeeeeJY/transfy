@@ -51,11 +51,19 @@ function cleanTitle(title: string): string {
     .trim();
 }
 
+const LRCLIB_TIMEOUT_MS = 8000; // LRCLIB 응답이 느릴 수 있어 8초로 설정
+
 // LRCLIB API
 export const getLyrics = async (artist: string, title: string, duration?: number, album?: string): Promise<LyricsData> => {
-  const fetchFromLrcLib = async (params: any) => {
+  const fetchFromLrcLib = async (params: Record<string, string | number | undefined>) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "")
+    ) as Record<string, string | number>;
     try {
-      const response = await axios.get('https://lrclib.net/api/get', { params });
+      const response = await axios.get('https://lrclib.net/api/get', {
+        params: cleanParams,
+        timeout: LRCLIB_TIMEOUT_MS,
+      });
       return response.data;
     } catch {
       return null;
@@ -64,68 +72,40 @@ export const getLyrics = async (artist: string, title: string, duration?: number
 
   const searchFromLrcLib = async (q: string) => {
     try {
-      const response = await axios.get('https://lrclib.net/api/search', { params: { q } });
-      return response.data[0]; // Best match
+      const response = await axios.get('https://lrclib.net/api/search', {
+        params: { q },
+        timeout: LRCLIB_TIMEOUT_MS,
+      });
+      return response.data?.[0] ?? null;
     } catch {
       return null;
     }
   };
 
-  // 1. Try Exact Match (Strict)
+  // 1. 정확 매칭 (한 번만)
   let data = await fetchFromLrcLib({
     artist_name: artist,
     track_name: title,
-    album_name: album,
+    album_name: album ?? "",
     duration: duration ? Math.round(duration) : undefined,
   });
 
-  // 2. Try Search with Duration (High Accuracy)
+  // 2. 검색 1회만 (LRCLIB 불안정 시 페이지 블로킹 최소화)
   if (!data?.plainLyrics && !data?.syncedLyrics) {
-    // If duration is provided, filter search results by duration
-    if (duration) {
-       try {
-        const searchRes = await axios.get('https://lrclib.net/api/search', { 
-          params: { q: `${artist} ${title}` } 
-        });
-        // Find a track with similar duration (+- 5 seconds tolerance)
-        data = searchRes.data.find((t: any) => Math.abs(t.duration - duration) < 5);
-       } catch {}
-    }
-  }
-
-  // 3. Try Loose Search (Just Artist + Title)
-  if (!data?.plainLyrics && !data?.syncedLyrics) {
-    data = await searchFromLrcLib(`${artist} ${title}`);
-  }
-
-  // 4. Try Cleaned Title Search (Remove Feat, etc.)
-  if (!data?.plainLyrics && !data?.syncedLyrics) {
-    const cleanedTitle = cleanTitle(title);
-    if (cleanedTitle !== title) {
-      console.log(`Retrying with cleaned title: ${cleanedTitle}`);
-      data = await searchFromLrcLib(`${artist} ${cleanedTitle}`);
-    }
-  }
-
-  // 5. Try Search by Title Only (Handle cases where Artist name is localized/mismatched)
-  if (!data?.plainLyrics && !data?.syncedLyrics) {
-    console.log(`Retrying with just title: ${title}`);
     try {
-      const searchRes = await axios.get('https://lrclib.net/api/search', { 
-        params: { q: title } 
+      const searchRes = await axios.get('https://lrclib.net/api/search', {
+        params: { q: `${artist} ${title}` },
+        timeout: LRCLIB_TIMEOUT_MS,
       });
-      
-      if (duration) {
-        // Precise match: Title contains original query AND duration matches
-        data = searchRes.data.find((t: any) => 
-           t.trackName.toLowerCase().includes(title.toLowerCase()) && 
-           Math.abs(t.duration - duration) < 5
-        );
+      const list = searchRes.data ?? [];
+      if (duration && list.length) {
+        data = list.find((t: { duration?: number }) => Math.abs((t.duration ?? 0) - duration) < 5) ?? list[0];
       } else {
-        // Without duration, find exact title match to reduce false positives
-        data = searchRes.data.find((t: any) => t.trackName.toLowerCase() === title.toLowerCase());
+        data = list[0] ?? null;
       }
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   }
 
   if (data) {

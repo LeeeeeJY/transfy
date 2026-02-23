@@ -217,8 +217,10 @@ export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_ran
           uri: item.uri
         }));
       }
-    } catch (error) {
-      console.error(`Spotify Top ${type} Error:`, error);
+    } catch (error: unknown) {
+      const status = axios.isAxiosError(error) ? error.response?.status : null;
+      if (status === 401) console.warn(`Spotify Top ${type}: token expired or invalid (401)`);
+      else console.error(`Spotify Top ${type} Error:`, error);
       return [];
     }
   }
@@ -250,8 +252,10 @@ export async function getTopChartsAction(lang: string = 'en', limit: number = 10
         duration: item.duration_ms / 1000,
         uri: item.uri
       }));
-    } catch (error) {
-      console.error('Spotify Top Tracks Error:', error);
+    } catch (error: unknown) {
+      const status = axios.isAxiosError(error) ? error.response?.status : null;
+      if (status === 401) console.warn('Spotify Top Tracks: token expired or invalid (401)');
+      else console.error('Spotify Top Tracks Error:', error);
       // Fallback to iTunes if Spotify fails
     }
   } else {
@@ -309,8 +313,10 @@ export async function getUserSavedAlbumsAction(): Promise<Album[]> {
         image: item.album.images[0]?.url || '',
         uri: item.album.uri
       }));
-    } catch (error) {
-      console.error('Spotify Saved Albums Error:', error);
+    } catch (error: unknown) {
+      const status = axios.isAxiosError(error) ? error.response?.status : null;
+      if (status === 401) console.warn('Spotify Saved Albums: token expired or invalid (401)');
+      else console.error('Spotify Saved Albums Error:', error);
       return [];
     }
   }
@@ -334,8 +340,10 @@ export async function getUserPlaylistsAction(): Promise<Playlist[]> {
         image: item.images?.[0]?.url || '',
         uri: item.uri
       }));
-    } catch (error) {
-      console.error('Spotify Playlists Error:', error);
+    } catch (error: unknown) {
+      const status = axios.isAxiosError(error) ? error.response?.status : null;
+      if (status === 401) console.warn('Spotify Playlists: token expired or invalid (401)');
+      else console.error('Spotify Playlists Error:', error);
       return [];
     }
   }
@@ -368,8 +376,10 @@ export async function getRecentlyPlayedAction(): Promise<Track[]> {
       duration: item.track.duration_ms / 1000,
       uri: item.track.uri
     }));
-  } catch (error) {
-    console.error('Spotify Recently Played Error:', error);
+  } catch (error: unknown) {
+    const status = axios.isAxiosError(error) ? error.response?.status : null;
+    if (status === 401) console.warn('Spotify Recently Played: token expired or invalid (401)');
+    else console.error('Spotify Recently Played Error:', error);
     return [];
   }
 }

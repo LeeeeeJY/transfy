@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { getSyncedLyrics, parseLrc } from "@/lib/lrclib";
+import { parseLrc } from "@/lib/lrclib";
+import { getSyncedLyricsAction } from "@/app/actions/lyrics";
 import { translateText } from "@/app/actions/translate";
 import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
 
@@ -20,6 +21,7 @@ export function useLyricsFetcher() {
     setLoadingLyrics,
     originalLyrics,
     setOriginalLyrics,
+    lyricsRetryTrigger,
   } = usePlayerStore();
 
   useEffect(() => {
@@ -34,13 +36,20 @@ export function useLyricsFetcher() {
 
       if (!hasLyricsForCurrentTrack) {
         setLoadingLyrics(true);
-        setLyrics([]); // Clear display while loading
-        // Don't clear originalLyrics yet, we might reuse them if fetch fails? No, clear them.
-        setOriginalLyrics([]); 
-        
-        // Try to fetch
-        const lrcRaw = await getSyncedLyrics(title, artist, "", duration);
-        
+        setLyrics([]);
+        setOriginalLyrics([]);
+
+        // 캐시 먼저 확인 (LRCLIB 실패해도 이전에 저장된 가사 표시)
+        const cachedData = await getCachedLyrics(trackId, targetLanguage);
+        if (cachedData && cachedData.length > 0) {
+          setLyrics(cachedData);
+          setOriginalLyrics(cachedData);
+          setLoadingLyrics(false);
+          return;
+        }
+
+        const lrcRaw = await getSyncedLyricsAction(title, artist, "", duration);
+
         if (!lrcRaw) {
           setLyrics([]);
           setOriginalLyrics([]);
@@ -53,7 +62,7 @@ export function useLyricsFetcher() {
           ...line,
           id: `${trackId}-${idx}`,
         }));
-        
+
         setOriginalLyrics(lyricsToProcess);
       } else {
         // Use existing lyrics
@@ -124,18 +133,13 @@ export function useLyricsFetcher() {
 
     fetchAndProcessLyrics();
   }, [
-    trackId, 
-    title, 
-    artist, 
-    duration, 
-    targetLanguage, 
-    showTranslation, 
-    // We include dependencies that should trigger re-processing
-    // Note: originalLyrics is NOT in dependency array to avoid loops when we update it.
-    // We rely on trackId change to trigger fetch, and local variable lyricsToProcess to carry data.
-    // However, if showTranslation changes, we need access to latest originalLyrics.
-    // Since usePlayerStore hook runs on every store update, the 'originalLyrics' variable in scope 
-    // will be fresh when this effect runs due to showTranslation change.
+    trackId,
+    title,
+    artist,
+    duration,
+    targetLanguage,
+    showTranslation,
+    lyricsRetryTrigger, // "가사 다시 불러오기" 클릭 시 재요청
   ]);
 
 }

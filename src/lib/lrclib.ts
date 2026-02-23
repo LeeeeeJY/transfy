@@ -13,31 +13,65 @@ export interface LrcLibResponse {
   syncedLyrics: string;
 }
 
+const LRCLIB_TIMEOUT_MS = 8000; // 서버 응답이 느릴 수 있어 8초로 설정
+const LRCLIB_RETRY_DELAY_MS = 500;
+
+function isRetryableNetworkError(err: unknown): boolean {
+  const code = axios.isAxiosError(err) ? err.code : (err as NodeJS.ErrnoException)?.code;
+  const msg = (err as Error)?.message ?? "";
+  return (
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNABORTED" ||
+    code === "ECONNREFUSED" ||
+    msg.includes("socket hang up") ||
+    msg.includes("socket disconnected")
+  );
+}
+
 export async function getSyncedLyrics(
   trackName: string,
   artistName: string,
   albumName: string,
   duration: number
 ): Promise<string | null> {
-  try {
-    const params: Record<string, string | number> = {
-      track_name: trackName,
-      artist_name: artistName,
-    };
+  const params: Record<string, string | number> = {
+    track_name: trackName,
+    artist_name: artistName,
+  };
+  if (albumName) params.album_name = albumName;
+  if (duration > 0) params.duration = Math.round(duration);
 
-    if (albumName) params.album_name = albumName;
-    if (duration > 0) params.duration = Math.round(duration);
-
-    const response = await axios.get<LrcLibResponse>(`${LRCLIB_API_URL}/get`, {
-      params,
-    });
-    return response.data.syncedLyrics;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      // 404 is expected when lyrics are not found, suppress error log
+  const doRequest = async (): Promise<string | null> => {
+    try {
+      const response = await axios.get<LrcLibResponse>(`${LRCLIB_API_URL}/get`, {
+        params,
+        timeout: LRCLIB_TIMEOUT_MS,
+      });
+      return response.data.syncedLyrics ?? null;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+      if (isRetryableNetworkError(error)) throw error; // 재시도하도록
+      console.warn("LRCLIB:", (error as Error)?.message || error);
       return null;
     }
-    console.error("LRCLIB Error:", error);
+  };
+
+  try {
+    const result = await doRequest();
+    if (result !== null) return result;
+    return null; // 404 등으로 가사 없음
+  } catch (firstErr) {
+    if (!isRetryableNetworkError(firstErr)) return null;
+    console.warn("LRCLIB connection failed, retrying once...", (firstErr as Error)?.message);
+    await new Promise((r) => setTimeout(r, LRCLIB_RETRY_DELAY_MS));
+  }
+
+  try {
+    return await doRequest();
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+    console.warn("LRCLIB:", (error as Error)?.message || "connection failed");
     return null;
   }
 }

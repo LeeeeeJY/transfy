@@ -11,9 +11,11 @@ export function slugify(text: string): string {
 // 한글 등 다국어 지원을 위해 encodeURIComponent 사용이 더 안전할 수 있음
 // 여기서는 간단히 URL 인코딩을 사용하는 버전을 추천합니다.
 export function encodeTrackUrl(artist: string, title: string): string {
-  // 공백만 -로 바꾸고 나머지는 그대로 인코딩 (한글 지원)
-  const safeArtist = encodeURIComponent(artist.trim().replace(/\s+/g, '-'));
-  const safeTitle = encodeURIComponent(title.trim().replace(/\s+/g, '-'));
+  // 공백만 -로 바꾸고 나머지는 그대로 인코딩 (한글 지원). 빈 값은 세그먼트 깨짐/404 방지용 폴백.
+  const a = (artist ?? "").trim().replace(/\s+/g, "-") || "Unknown";
+  const t = (title ?? "").trim().replace(/\s+/g, "-") || "Unknown";
+  const safeArtist = encodeURIComponent(a);
+  const safeTitle = encodeURIComponent(t);
   return `/track/${safeArtist}/${safeTitle}`;
 }
 

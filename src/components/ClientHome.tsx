@@ -18,8 +18,11 @@ const UI_TEXT = {
     subtitle: "실시간 가사 번역 서비스",
     loginSpotify: "Spotify로 로그인",
     searchSongs: "노래 검색하기",
+    goToLyrics: "가사 보기",
     permissionNotice:
       "로그인하면 현재 재생 중인 음악 정보를 읽어올 수 있는 권한을 요청합니다.",
+    loginExpired: "로그인이 만료되었습니다.",
+    loginAgain: "다시 로그인",
     titleDefault: "Transfy - 실시간 가사 번역기",
 
     // Landing Content
@@ -73,8 +76,11 @@ const UI_TEXT = {
     subtitle: "Realtime lyrics translation service",
     loginSpotify: "Sign in with Spotify",
     searchSongs: "Search Songs",
+    goToLyrics: "View lyrics",
     permissionNotice:
       "When you sign in, we request permission to read your current playback information.",
+    loginExpired: "Your session has expired.",
+    loginAgain: "Sign in again",
     titleDefault: "Transfy - Lyrics Translator",
 
     whyTransfy: "Why Transfy?",
@@ -128,8 +134,11 @@ const UI_TEXT = {
     subtitle: "リアルタイム歌詞翻訳サービス",
     loginSpotify: "Spotifyでログイン",
     searchSongs: "曲を検索",
+    goToLyrics: "歌詞を見る",
     permissionNotice:
       "ログインすると、現在再生中の音楽情報を読み取る権限をリクエストします。",
+    loginExpired: "ログインの有効期限が切れました。",
+    loginAgain: "もう一度ログイン",
     titleDefault: "Transfy - 歌詞翻訳",
 
     whyTransfy: "Transfyを選ぶ理由",
@@ -181,7 +190,10 @@ const UI_TEXT = {
     subtitle: "实时歌词翻译服务",
     loginSpotify: "使用 Spotify 登录",
     searchSongs: "搜索歌曲",
+    goToLyrics: "查看歌词",
     permissionNotice: "登录后，我们会请求读取您当前播放信息的权限。",
+    loginExpired: "登录已过期。",
+    loginAgain: "重新登录",
     titleDefault: "Transfy - 歌词翻译",
 
     whyTransfy: "为什么选择 Transfy？",
@@ -303,36 +315,42 @@ export default function ClientHome({
         return;
       }
 
-      let lyricsArray: LyricsLine[] = [];
+      const trackIdForStore =
+        initialTrack.id ||
+        `static-${initialTrack.artist}-${initialTrack.title}`
+          .replace(/\s+/g, "-")
+          .toLowerCase();
 
+      let lyricsArray: LyricsLine[] = [];
       if (initialTrack.syncedLyrics) {
         lyricsArray = parseLrc(initialTrack.syncedLyrics);
       } else {
         const lyricsLines = lyricsText.split("\n");
         lyricsArray = lyricsLines
-          .filter((line) => line.trim().length > 0) // Remove empty lines
+          .filter((line) => line.trim().length > 0)
           .map((line, index) => ({
             id: `line-${index}`,
-            time: index * 3000, // 3 seconds per line (approximate)
+            time: index * 3000,
             text: line.trim(),
           }));
       }
+      // trackId 접두사로 originalLyrics 설정 → 클라이언트에서 같은 곡 LRCLIB 재호출 방지
+      const originalLyricsWithId = lyricsArray.map((line, idx) => ({
+        ...line,
+        id: `${trackIdForStore}-${idx}`,
+      }));
 
       usePlayerStore.setState({
         title: initialTrack.title,
         artist: initialTrack.artist,
         albumArt: initialTrack.albumArt,
-        lyrics: lyricsArray,
-        isPlaying: false, // It's static view initially
+        lyrics: originalLyricsWithId,
+        originalLyrics: originalLyricsWithId,
+        isPlaying: false,
         provider: "none",
         isInitialized: true,
-        // Use provided ID (from URL) if available, otherwise fallback to generating one
-        trackId:
-          initialTrack.id ||
-          `static-${initialTrack.artist}-${initialTrack.title}`
-            .replace(/\s+/g, "-")
-            .toLowerCase(),
-        isLoadingLyrics: false, // Loading finished
+        trackId: trackIdForStore,
+        isLoadingLyrics: false,
       });
     }
   }, [initialTrack, isLyricPageInitial]);
@@ -362,30 +380,12 @@ export default function ClientHome({
     }
   }, [searchParams]);
 
-  // Navigation Logic
+  // Navigation Logic: /lyric or /lyric/만 가사 페이지로 정리. 홈(/)에서는 자동 이동하지 않음.
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const currentPath = window.location.pathname;
-    const storageKey = "transfy_redirected_track";
-    const lastAutoRedirectId = sessionStorage.getItem(storageKey);
-
-    if (isPlaying && trackId) {
-      // If playing, enforce track page but prevent loops
-      if (currentPath === "/lyric" || currentPath === "/lyric/") {
-        if (title && artist) {
-          router.replace(encodeTrackUrl(artist, title));
-        }
-        return;
-      }
-
-      // If on landing page
-      if (currentPath === "/") {
-        if (lastAutoRedirectId !== trackId && title && artist) {
-          sessionStorage.setItem(storageKey, trackId);
-          router.push(encodeTrackUrl(artist, title));
-        }
-      }
+    if (isPlaying && trackId && title && artist && (currentPath === "/lyric" || currentPath === "/lyric/")) {
+      router.replace(encodeTrackUrl(artist, title));
     }
   }, [isPlaying, trackId, router, title, artist]);
 
@@ -435,6 +435,47 @@ export default function ClientHome({
     t.titleDefault,
     provider,
   ]);
+
+  // 로그인 만료: 토큰 갱신 실패 또는 accessToken 없음
+  const sessionWithToken = session as { accessToken?: string | null; error?: string } | null;
+  const isSessionExpired =
+    session &&
+    (sessionWithToken?.error || !sessionWithToken?.accessToken);
+
+  if (isSessionExpired) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-black text-white">
+        <div className="max-w-md w-full text-center space-y-8 mt-16">
+          <div>
+            <div className="flex justify-center mb-6">
+              <Link href="/" className="hover:opacity-90 transition-opacity">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.svg"
+                  alt="Transfy Logo"
+                  className="w-24 h-24 shadow-2xl rounded-full hover:scale-110 transition-transform duration-300"
+                />
+              </Link>
+            </div>
+            <h1 className="text-5xl font-bold tracking-tight mb-2">Transfy</h1>
+            <p className="text-lg text-amber-400/90">{t.loginExpired}</p>
+            <p className="text-sm text-zinc-500 mt-2">{t.permissionNotice}</p>
+          </div>
+          <div className="space-y-4">
+            <button
+              onClick={() => signIn("spotify")}
+              className="w-full flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 px-6 rounded-full transition-all transform hover:scale-105 shadow-lg cursor-pointer"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+              </svg>
+              {t.loginAgain}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!session && !isGuestMode && !isLyricPage) {
     return (

@@ -18,6 +18,7 @@ import {
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useSession } from "next-auth/react";
 import { play } from "@/lib/spotify";
+import { encodeTrackUrl } from "@/lib/utils";
 
 interface SearchClientProps {
   initialLang: string;
@@ -34,6 +35,7 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "최근 많이 들은 곡",
     noResults: "검색 결과가 없습니다.",
     showMore: "더보기",
+    playNoDevice: "재생할 기기가 없습니다. Spotify 앱에서 재생하거나, Premium이면 이 탭을 새로고침 후 다시 시도해 주세요.",
   },
   en: {
     placeholder: "Search for songs, artists...",
@@ -43,6 +45,7 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "Current Top Tracks",
     noResults: "No results found.",
     showMore: "Show more",
+    playNoDevice: "No active device. Play from the Spotify app, or refresh this tab if you have Premium.",
   },
   ja: {
     placeholder: "曲名、アーティストを検索...",
@@ -52,6 +55,7 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "最近よく聴く曲",
     noResults: "検索結果がありません。",
     showMore: "もっと見る",
+    playNoDevice: "再生できるデバイスがありません。Spotifyアプリで再生するか、Premiumの場合はこのタブを再読み込みしてください。",
   },
   zh: {
     placeholder: "搜索歌曲、艺术家...",
@@ -61,6 +65,7 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "最近常听的歌曲",
     noResults: "未找到结果。",
     showMore: "查看更多",
+    playNoDevice: "没有可用的播放设备。请在 Spotify 应用中播放，或如为 Premium 用户请刷新本页面后重试。",
   },
 } as const;
 
@@ -78,6 +83,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const [loadingMoreResults, setLoadingMoreResults] = useState(false);
   const [loadingMoreCharts, setLoadingMoreCharts] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playError, setPlayError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -87,7 +93,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const [hasMoreResults, setHasMoreResults] = useState(true);
   const [hasMoreCharts, setHasMoreCharts] = useState(true);
 
-  const { setTrack, setIsPlaying } = usePlayerStore();
+  const { setTrack, setIsPlaying, deviceId } = usePlayerStore();
 
   // Get UI text based on language
   const t =
@@ -232,19 +238,21 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   };
 
   const handleTrackClick = async (track: Track) => {
+    setPlayError(null);
+    const trackPath = encodeTrackUrl(track.artist, track.title);
     if (session?.accessToken) {
-      // Logged In: Play and Navigate to Track Page (Synced View)
-      await play(session.accessToken, track.uri);
+      const playOk = await play(session.accessToken, track.uri, deviceId);
       setTrack(track);
-      setIsPlaying(true);
-      router.push(
-        `/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`,
-      );
+      if (playOk) setIsPlaying(true);
+      else {
+        setPlayError(t.playNoDevice);
+        setTimeout(() => setPlayError(null), 6000);
+      }
+      // 재생 실패 시 메시지를 잠깐 보여준 뒤 이동
+      if (playOk) router.push(trackPath);
+      else setTimeout(() => router.push(trackPath), 2200);
     } else {
-      // Guest: Navigate to Track Page (Static View)
-      router.push(
-        `/track/${encodeURIComponent(track.artist)}/${encodeURIComponent(track.title)}`,
-      );
+      router.push(trackPath);
     }
   };
 
@@ -302,6 +310,11 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       {error && (
         <div className="text-center text-red-400 text-sm bg-red-500/10 py-2 rounded-lg border border-red-500/20">
           {error}
+        </div>
+      )}
+      {playError && (
+        <div className="text-center text-amber-400 text-sm bg-amber-500/10 py-2 rounded-lg border border-amber-500/20">
+          {playError}
         </div>
       )}
 

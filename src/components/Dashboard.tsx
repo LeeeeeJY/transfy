@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { play } from "@/lib/spotify";
 import { encodeTrackUrl } from "@/lib/utils";
+import { usePlayerStore } from "@/store/usePlayerStore";
 import {
   User,
   Play,
@@ -62,6 +63,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const deviceId = usePlayerStore((s) => s.deviceId);
 
   // Get UI text based on language
   const t =
@@ -104,7 +106,7 @@ export default function Dashboard({
 
   const handlePlayContext = async (uri: string) => {
     if (session?.accessToken) {
-      await play(session.accessToken as string, uri);
+      await play(session.accessToken as string, uri, deviceId);
     } else {
       alert("Please login to play music.");
     }

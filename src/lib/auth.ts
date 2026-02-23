@@ -125,13 +125,9 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
 
-      // Access token has expired, try to update it
-      // Only refresh for Spotify provider
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (account?.provider === "spotify" || !(token as any).user) {
-        if ((token as ExtendedToken).refreshToken) {
-          return refreshAccessToken(token as ExtendedToken);
-        }
+      // Access token has expired (세션 읽기 시에도 갱신)
+      if ((token as ExtendedToken).refreshToken) {
+        return refreshAccessToken(token as ExtendedToken);
       }
 
       return token;
@@ -139,7 +135,8 @@ export const authOptions: NextAuthOptions = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, token }: any) {
       session.user = token.user;
-      session.accessToken = token.accessToken;
+      // 갱신 실패 시 만료된 토큰 사용 방지 (401 방지)
+      session.accessToken = token.error ? null : token.accessToken;
       session.error = token.error;
       return session;
     },
