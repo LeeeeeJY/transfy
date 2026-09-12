@@ -17,7 +17,7 @@
 - **State Management**: Zustand (Global Player State)
 - **Auth**: NextAuth.js (Spotify Provider)
 - **Analytics**: Vercel Web Analytics (`@vercel/analytics`)
-- **Cache**: Next.js 데이터 캐시 (배포 환경에서는 Vercel Data Cache)
+- **Cache**: Next.js 데이터 캐시 (배포 환경에서는 Vercel Data Cache) — 가사 원문 7일, 번역 결과 30일
 - **External APIs**:
     - Spotify Web API (Playback State)
     - LRCLIB (Open Source Lyrics API)
@@ -36,6 +36,9 @@
     - **Spotify**: 클라이언트(`useSpotifyPoller`)가 주기적으로 API를 호출하여 재생 정보를 가져옵니다.
 3. **가사 검색 (Lyrics Fetching)**:
     - 트랙이 변경되면 `LRCLIB` API에 `track_name`, `artist_name`, `duration`을 보내 싱크 가사를 요청합니다.
+    - 조회한 가사 원문은 7일간 서버 캐시에 저장하므로, LRCLIB가 일시적으로 응답하지
+      않아도 이미 조회한 곡은 가사를 계속 보여 줍니다. "가사 없음"은 캐시하지 않아서,
+      나중에 가사가 등록되면 바로 반영됩니다.
     - 가사가 없으면 에러 메시지를 표시합니다.
 4. **번역 (Translation)**:
     - 가져온 가사는 서버 액션(`translateLines`)을 통해 구글 번역 API로 전송됩니다.

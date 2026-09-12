@@ -1,13 +1,3 @@
-export function slugify(text: string): string {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')     // 공백을 -로 치환
-    .replace(/[^\w\-]+/g, '') // 알파벳, 숫자, - 외의 문자 제거 (한글은 보존해야 할 수도 있으나 URL 인코딩 고려하여 일단 영어 기준)
-    .replace(/\-\-+/g, '-');  // 반복되는 - 제거
-}
-
 /** 트랙 ID를 조회할 외부 서비스 */
 export type TrackSource = "spotify" | "itunes";
 

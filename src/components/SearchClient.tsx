@@ -25,8 +25,6 @@ interface SearchClientProps {
   initialLang: string;
 }
 
-const INITIAL_VISIBLE = 10;
-
 const SEARCH_UI_TEXT = {
   ko: {
     placeholder: "노래 제목, 아티스트 검색...",

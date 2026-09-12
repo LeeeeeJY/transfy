@@ -140,7 +140,6 @@ export default function LyricsView({
   const currentUiLang = initialUiLanguage || uiLanguage || "en";
 
   // Get current language text
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = UI_TEXT[currentUiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   const activeLineRef = useRef<HTMLDivElement | null>(null);
