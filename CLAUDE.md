@@ -83,7 +83,7 @@ ID 없이 들어온 경우에는 `src/lib/track-match.ts`의 `pickBestMatch`로 
 | `NEXTAUTH_URL` | 배포 주소 (로컬은 `http://localhost:3000`) |
 | `SPOTIFY_CLIENT_ID` | 로그인과 비로그인 트랙 조회에 사용 |
 | `SPOTIFY_CLIENT_SECRET` | 위와 동일 |
-| `NEXT_PUBLIC_URL` | `robots.ts`와 `sitemap.ts`의 기준 주소 (없으면 기본값 사용) |
+| `NEXT_PUBLIC_URL` | 서비스 대표 주소. 메타데이터, 구조화 데이터, `robots.ts`, `sitemap.ts`가 참조합니다 (없으면 `src/lib/site.ts`의 기본값 사용) |
 
 ## 작성 언어
 
