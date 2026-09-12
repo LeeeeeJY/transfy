@@ -13,6 +13,9 @@
 NEXTAUTH_SECRET=your_super_secret_key
 NEXTAUTH_URL=http://localhost:3000
 
+# 서비스 대표 주소 (메타데이터·사이트맵에 사용. 로컬에서는 생략 가능)
+NEXT_PUBLIC_URL=http://localhost:3000
+
 # Spotify Client (https://developer.spotify.com/dashboard)
 # 1. App 생성 -> Edit Settings -> Redirect URIs 추가: http://localhost:3000/api/auth/callback/spotify
 SPOTIFY_CLIENT_ID=your_spotify_client_id
@@ -49,9 +52,13 @@ npm run dev
 1. GitHub에 코드를 푸시합니다.
 2. Vercel 대시보드에서 `New Project`를 클릭하고 리포지토리를 연결합니다.
 3. **Environment Variables** 설정 단계에서 `.env.local`에 있던 모든 변수를 입력합니다.
-   - 주의: `NEXTAUTH_URL`은 배포된 도메인 주소(예: `https://transfy-wine.vercel.app`)로 변경해야 합니다.
+   - 주의: `NEXTAUTH_URL`은 배포된 도메인 주소(예: `https://transfy-lyrics.vercel.app`)로 변경해야 합니다.
+   - `NEXT_PUBLIC_URL`도 같은 주소로 설정하세요. 메타데이터, 구조화 데이터, 사이트맵,
+     robots.txt가 이 값을 사용하므로, 도메인을 바꿀 때 코드를 고칠 필요가 없습니다.
 4. **Deploy** 버튼을 누릅니다.
-5. 배포 완료 후, 각 플랫폼(Spotify) 대시보드에서 Redirect URI 및 도메인 설정을 배포된 도메인(`https://transfy-wine.vercel.app`)으로 업데이트해야 정상 작동합니다.
+5. 배포 완료 후, Spotify 개발자 대시보드의 Redirect URI를 배포된 도메인에 맞춰
+   `https://<배포 도메인>/api/auth/callback/spotify` 형태로 등록해야 로그인이 동작합니다.
+   경로와 슬래시까지 정확히 일치해야 하며, 도메인을 바꾸면 새 주소를 추가해야 합니다.
 6. Vercel 프로젝트의 **Analytics** 탭에서 Web Analytics를 활성화하면 방문 통계와
    커스텀 이벤트(`lyrics_open`, `lyrics_result`, `translate`, `search`)가 수집됩니다.
    활성화하지 않아도 애플리케이션은 정상 동작하며, 수집만 이루어지지 않습니다.

@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next';
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { encodeTrackUrl } from "@/lib/utils";
+import { SITE_URL } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://transfy-wine.vercel.app';
+  const baseUrl = SITE_URL;
 
   const songUrls = POPULAR_SONGS.map((song) => ({
     url: `${baseUrl}${encodeTrackUrl(song.artist, song.title)}`,

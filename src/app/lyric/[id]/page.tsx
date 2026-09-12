@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import ClientHome from "@/components/ClientHome";
 import { getLanguageFromHeaders } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
+import { absoluteUrl } from "@/lib/site";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -110,7 +111,7 @@ export default async function LyricPage({ params }: Props) {
     "image": track.artwork?.url,
     "description": `Lyrics and translation for ${track.name} by ${track.artistName}`,
     "inLanguage": ["ko", "en", "ja", "zh"],
-    "url": `https://transfy-wine.vercel.app/lyric/${id}`,
+    "url": absoluteUrl(`/lyric/${id}`),
   } : (dummySong ? {
     "@context": "https://schema.org",
     "@type": "MusicRecording",
@@ -122,7 +123,7 @@ export default async function LyricPage({ params }: Props) {
     "image": dummySong.albumArt,
     "description": `Lyrics and translation for ${dummySong.title} by ${dummySong.artist}`,
     "inLanguage": ["ko", "en", "ja", "zh"],
-    "url": `https://transfy-wine.vercel.app/lyric/${id}`,
+    "url": absoluteUrl(`/lyric/${id}`),
   } : null);
 
   return (

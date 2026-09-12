@@ -13,6 +13,7 @@ import {
   type TrackSource,
 } from "@/lib/utils";
 import { pickBestMatch } from "@/lib/track-match";
+import { absoluteUrl } from "@/lib/site";
 import { searchTracksAction, getTrackByIdAction } from "@/app/actions/search";
 
 type Props = {
@@ -198,7 +199,7 @@ export default async function TrackPage({ params, searchParams }: Props) {
       "@type": "MusicGroup",
       "name": trackInfo?.artist || decodedArtist,
     },
-    "url": `https://transfy-wine.vercel.app/track/${artist}/${title}`,
+    "url": absoluteUrl(`/track/${artist}/${title}`),
     ...(trackInfo && {
       "image": trackInfo.albumArt,
       "lyrics": {

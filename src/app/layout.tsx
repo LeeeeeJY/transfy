@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { getLanguageFromHeaders } from "@/lib/server-utils";
+import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://transfy-wine.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Transfy | 실시간 가사 번역",
     template: "%s | Transfy", // This template adds " | Transfy" to child pages
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Transfy - 스포티파이 실시간 가사 번역",
     description: "지금 듣고 있는 노래의 가사를 실시간으로 번역해서 확인하세요.",
-    url: "https://transfy-wine.vercel.app",
+    url: SITE_URL,
     siteName: "Transfy",
     locale: "ko_KR",
     type: "website",
@@ -101,7 +102,7 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "Transfy",
-              "url": "https://transfy-wine.vercel.app",
+              "url": SITE_URL,
               "description": "Real-time Spotify lyrics translation service",
               "applicationCategory": "MultimediaApplication",
               "operatingSystem": "Any",
