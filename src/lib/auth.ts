@@ -23,6 +23,48 @@ interface ExtendedToken extends TokenSet {
   error?: string;
 }
 
+/** 만료 직전 토큰으로 요청하지 않도록 미리 갱신하는 여유 시간 */
+const REFRESH_MARGIN_MS = 60 * 1000;
+
+/**
+ * 저장된 만료 시각이 이 이상 남아 있으면 잘못 계산된 값으로 봅니다.
+ * 스포티파이 액세스 토큰의 수명은 1시간이므로, 하루를 넘길 수 없습니다.
+ * 예전 버전이 만료 시각을 수십 년 뒤로 저장해 둔 세션도 이 검사로 걸러
+ * 다음 요청에서 정상적으로 갱신됩니다.
+ */
+const MAX_PLAUSIBLE_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 계정 정보에서 액세스 토큰의 만료 시각(ms)을 구합니다.
+ *
+ * `expires_at`은 만료 시각(유닉스 초)이고 `expires_in`은 남은 시간(초)입니다.
+ * 둘을 혼동해 현재 시각에 `expires_at`을 더하면 만료 시각이 수십 년 뒤로
+ * 계산되어 토큰이 영원히 갱신되지 않습니다.
+ */
+function resolveAccessTokenExpiry(account: {
+  expires_at?: number | null;
+  expires_in?: number | null;
+}): number {
+  if (typeof account.expires_at === "number") {
+    return account.expires_at * 1000;
+  }
+  if (typeof account.expires_in === "number") {
+    return Date.now() + account.expires_in * 1000;
+  }
+  // 값을 받지 못한 경우 스포티파이 기본 수명(1시간)으로 둡니다.
+  return Date.now() + 60 * 60 * 1000;
+}
+
+/** 저장된 만료 시각을 믿을 수 있는지 확인합니다. */
+function hasUsableExpiry(token: ExtendedToken): boolean {
+  const expires = token.accessTokenExpires;
+  return (
+    typeof expires === "number" &&
+    Number.isFinite(expires) &&
+    expires - Date.now() < MAX_PLAUSIBLE_LIFETIME_MS
+  );
+}
+
 async function refreshAccessToken(
   token: ExtendedToken,
 ): Promise<ExtendedToken> {
@@ -113,21 +155,24 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         return {
           accessToken: account.access_token,
-          accessTokenExpires:
-            Date.now() + (account.expires_at as number) * 1000,
+          accessTokenExpires: resolveAccessTokenExpiry(account),
           refreshToken: account.refresh_token,
           user,
         } as ExtendedToken;
       }
 
-      // Return previous token if the access token has not expired yet
-      if (Date.now() < (token as ExtendedToken).accessTokenExpires) {
+      // 만료 시각이 정상이고 아직 여유가 남아 있으면 기존 토큰을 그대로 씁니다.
+      const extendedToken = token as ExtendedToken;
+      if (
+        hasUsableExpiry(extendedToken) &&
+        Date.now() < extendedToken.accessTokenExpires - REFRESH_MARGIN_MS
+      ) {
         return token;
       }
 
-      // Access token has expired (세션 읽기 시에도 갱신)
-      if ((token as ExtendedToken).refreshToken) {
-        return refreshAccessToken(token as ExtendedToken);
+      // 만료되었거나 만료 시각을 믿을 수 없으면 갱신합니다.
+      if (extendedToken.refreshToken) {
+        return refreshAccessToken(extendedToken);
       }
 
       return token;

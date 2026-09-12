@@ -6,7 +6,14 @@ export async function getCurrentlyPlaying(accessToken: string) {
     },
   });
 
-  if (res.status === 204 || res.status > 400) {
+  // 204는 재생 중인 곡이 없다는 뜻이고, 401은 토큰이 만료된 것입니다.
+  // 두 경우를 구분해 두지 않으면 "재생 없음"과 "인증 실패"를 알 수 없습니다.
+  if (res.status === 401) {
+    console.warn("Spotify: 액세스 토큰이 만료되었습니다. 다시 로그인해야 합니다.");
+    return null;
+  }
+
+  if (res.status === 204 || !res.ok) {
     return null;
   }
 
@@ -82,43 +89,40 @@ export async function play(
   }
 }
 
-export async function pause(accessToken: string) {
+/** 재생 제어 요청을 보내고 성공 여부를 돌려줍니다. */
+async function sendPlayerCommand(
+  accessToken: string,
+  path: string,
+  method: "PUT" | "POST",
+  label: string
+): Promise<boolean> {
   try {
-    await fetch("https://api.spotify.com/v1/me/player/pause", {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+    const res = await fetch(`https://api.spotify.com/v1/me/player/${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
+
+    if (res.ok) return true;
+
+    // 401: 토큰 만료 / 403: 프리미엄 아님 또는 권한 없음 / 404: 활성 기기 없음
+    console.warn(`Spotify ${label} failed:`, res.status);
+    return false;
   } catch (error) {
-    console.error("Error pausing:", error);
+    console.error(`Error ${label}:`, error);
+    return false;
   }
 }
 
-export async function next(accessToken: string) {
-  try {
-    await fetch("https://api.spotify.com/v1/me/player/next", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-  } catch (error) {
-    console.error("Error skipping next:", error);
-  }
+export async function pause(accessToken: string): Promise<boolean> {
+  return sendPlayerCommand(accessToken, "pause", "PUT", "pause");
 }
 
-export async function previous(accessToken: string) {
-  try {
-    await fetch("https://api.spotify.com/v1/me/player/previous", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-  } catch (error) {
-    console.error("Error skipping previous:", error);
-  }
+export async function next(accessToken: string): Promise<boolean> {
+  return sendPlayerCommand(accessToken, "next", "POST", "next");
+}
+
+export async function previous(accessToken: string): Promise<boolean> {
+  return sendPlayerCommand(accessToken, "previous", "POST", "previous");
 }
 
 export async function transferPlayback(

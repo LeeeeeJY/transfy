@@ -154,6 +154,9 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
     });
   }, [progressMs, lyrics]);
 
+  /** 진행 위치에 해당하는 줄이 있는지 여부 */
+  const hasActiveLine = activeIndex >= 0;
+
   // Auto scroll side effect
   useEffect(() => {
     if (activeLineRef.current) {
@@ -391,13 +394,19 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
         <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-32">
           {lyrics.map((line, index) => {
             const isActive = index === activeIndex;
+            // 현재 줄이 정해졌을 때만 나머지를 흐리게 처리합니다.
+            // 재생이 시작되기 전이나 첫 줄의 시작 시각 이전에는 활성 줄이 없는데,
+            // 그때도 흐리게 두면 가사 전체가 읽기 어려워집니다.
+            const isDimmed = hasActiveLine && !isActive;
             return (
               <div
                 key={line.id ?? `line-${index}`}
                 ref={isActive ? activeLineRef : null}
                 className={`transition-all duration-500 ease-in-out cursor-pointer ${isActive
                   ? "opacity-100 scale-105 origin-left"
-                  : "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
+                  : isDimmed
+                    ? "opacity-40 hover:opacity-70 blur-[1px] hover:blur-0"
+                    : "opacity-100"
                   }`}
                 onClick={() => {
                   // Optional: Seek functionality could be added here
