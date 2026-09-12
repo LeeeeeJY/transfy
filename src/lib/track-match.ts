@@ -15,6 +15,38 @@ function splitArtists(artist: string): string[] {
 }
 
 /**
+ * 괄호나 대시로 시작하는 부가 표기를 떼어 낸 제목을 돌려줍니다.
+ * "Dynamite (Acoustic Version)" → "dynamite"
+ */
+function baseTitle(title: string): string {
+  const cut = title.split(/[([]| - /)[0];
+  return normalizeForMatch(cut);
+}
+
+/**
+ * 부가 표기만 다른 같은 곡인지 판정합니다.
+ *
+ * 한쪽이 부가 표기를 전혀 갖고 있지 않을 때만 인정합니다. 그래서
+ * "Dynamite (Acoustic)"과 "Dynamite"는 같은 곡으로 보지만,
+ * "Song (Part 1)"과 "Song (Part 2)"처럼 양쪽 모두 표기가 붙어 서로 다른 곡일 수
+ * 있는 경우는 인정하지 않습니다.
+ *
+ * 제목의 앞부분만 겹치는지 보는 방식(예: "Love"와 "Love Song")은 쓰지 않습니다.
+ * 그렇게 하면 이름이 비슷한 다른 곡이 열리는, 지금 고치려는 그 문제가 남습니다.
+ */
+function sameBaseTitle(candidateTitle: string, wantedTitle: string): boolean {
+  const candidateBase = baseTitle(candidateTitle);
+  const wantedBase = baseTitle(wantedTitle);
+
+  if (!candidateBase || candidateBase !== wantedBase) return false;
+
+  const candidateHasNoSuffix = candidateBase === normalizeForMatch(candidateTitle);
+  const wantedHasNoSuffix = wantedBase === normalizeForMatch(wantedTitle);
+
+  return candidateHasNoSuffix || wantedHasNoSuffix;
+}
+
+/**
  * 검색 결과가 요청한 곡과 같은 곡인지 점수로 판정합니다.
  * 일치하지 않으면 -1을 돌려주어 후보에서 제외합니다.
  *
@@ -57,12 +89,7 @@ export function matchScore(
     candidateTitle === targetTitleClean
   ) {
     titleScore = 2;
-  } else if (
-    artistScore === 2 &&
-    (candidateTitle.startsWith(`${targetTitle} `) ||
-      targetTitle.startsWith(`${candidateTitle} `))
-  ) {
-    // 아티스트가 정확히 같을 때만, 한쪽 제목이 다른 쪽으로 시작하는 경우를 허용합니다.
+  } else if (sameBaseTitle(candidate.title, wantedTitle)) {
     titleScore = 1;
   } else {
     return -1;
