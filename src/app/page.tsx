@@ -1,5 +1,5 @@
 import ClientHome from "@/components/ClientHome";
-import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
+import { getLanguageFromHeaders } from "@/lib/server-utils";
 import { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,17 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  // Detect language, country, and IP on server side
+  // Detect language on server side
   const lang = await getLanguageFromHeaders();
-  const country = await getCountryFromHeaders();
-  const ip = await getClientIp();
 
-  return (
-    <ClientHome
-      initialLang={lang}
-      initialCountry={country}
-      initialIp={ip}
-      isLyricPageInitial={false}
-    />
-  );
+  return <ClientHome initialLang={lang} isLyricPageInitial={false} />;
 }

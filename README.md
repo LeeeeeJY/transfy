@@ -32,6 +32,8 @@ npm run dev
 - **Frontend:** Next.js 16, React 19, Zustand, Tailwind CSS
 - **Auth:** NextAuth.js v4 (Spotify)
 - **API:** Spotify Web API, LRCLIB (Lyrics), Google Translate (Unofficial)
+- **Analytics:** Vercel Web Analytics
+- **Cache:** Next.js 데이터 캐시 (번역 결과 캐싱, 별도 DB 불필요)
 
 ## 📝 라이선스 (License)
 

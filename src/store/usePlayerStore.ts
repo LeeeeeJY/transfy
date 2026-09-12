@@ -35,10 +35,15 @@ interface PlayerState {
   // Settings & Environment
   uiLanguage: string | null;
   targetLanguage: string;
-  countryCode: string;
-  clientIp: string;
   isInitialized: boolean;
   isLoadingLyrics: boolean;
+  isTranslating: boolean;
+  /**
+   * 사용자가 검색 결과나 차트에서 직접 선택한 곡의 ID.
+   * 이 값이 설정되어 있으면 스포티파이 폴러가 실제로 재생 중인 다른 곡의
+   * 정보로 화면을 덮어쓰지 않습니다.
+   */
+  pinnedTrackId: string | null;
   provider: "spotify" | "apple" | "none"; // For tracking source
   isSdkReady: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,10 +73,11 @@ interface PlayerState {
   // New Actions for Settings
   setUiLanguage: (lang: string | null) => void;
   setTargetLanguage: (lang: string) => void;
-  setEnvironment: (country: string, ip: string) => void;
   setIsInitialized: (initialized: boolean) => void;
   setIsLoadingLyrics: (loading: boolean) => void;
   setLoadingLyrics: (loading: boolean) => void; // Alias
+  setIsTranslating: (translating: boolean) => void;
+  setPinnedTrackId: (trackId: string | null) => void;
   setProvider: (provider: "spotify" | "apple" | "none") => void;
   setIsSdkReady: (isReady: boolean) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,10 +105,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   // Default values
   uiLanguage: null,
   targetLanguage: 'ko',
-  countryCode: '',
-  clientIp: '',
   isInitialized: false,
   isLoadingLyrics: false,
+  isTranslating: false,
+  pinnedTrackId: null,
   provider: 'none',
   isSdkReady: false,
   player: null,
@@ -149,7 +155,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     artist: '',
     albumArt: '',
     trackId: null,
-    duration: 0
+    duration: 0,
+    isTranslating: false,
+    pinnedTrackId: null
   }),
   setShowTranslation: (show) => set({ showTranslation: show }),
   toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
@@ -157,10 +165,11 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   // New Actions Implementation
   setUiLanguage: (lang) => set({ uiLanguage: lang }),
   setTargetLanguage: (lang) => set({ targetLanguage: lang }),
-  setEnvironment: (country, ip) => set({ countryCode: country, clientIp: ip }),
   setIsInitialized: (initialized) => set({ isInitialized: initialized }),
   setIsLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }),
   setLoadingLyrics: (loading) => set({ isLoadingLyrics: loading }), // Alias implementation
+  setIsTranslating: (translating) => set({ isTranslating: translating }),
+  setPinnedTrackId: (trackId) => set({ pinnedTrackId: trackId }),
   setProvider: (provider) => set({ provider }),
   setIsSdkReady: (isReady) => set({ isSdkReady: isReady }),
   setPlayer: (player) => set({ player }),

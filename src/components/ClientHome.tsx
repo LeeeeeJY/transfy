@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
 import { useRouter, useSearchParams } from "next/navigation";
-import { encodeTrackUrl, parseLrc } from "@/lib/utils";
+import { encodeTrackUrl, parseLrc, parseTrackKey, staticTrackKey } from "@/lib/utils";
 
 const UI_TEXT = {
   ko: {
@@ -246,14 +246,13 @@ interface TrackInfo {
   title: string;
   artist: string;
   albumArt: string;
+  duration?: number; // seconds (LRCLIB 매칭 정확도를 높이는 데 사용)
   lyrics: string | null;
   syncedLyrics?: string | null;
 }
 
 interface ClientHomeProps {
   initialLang: "ko" | "en" | "ja" | "zh";
-  initialCountry: string;
-  initialIp: string;
   isLyricPageInitial?: boolean;
   isDummyTrack?: boolean;
   initialTrack?: TrackInfo;
@@ -261,8 +260,6 @@ interface ClientHomeProps {
 
 export default function ClientHome({
   initialLang,
-  initialCountry,
-  initialIp,
   isLyricPageInitial = false,
   isDummyTrack = false,
   initialTrack,
@@ -279,81 +276,84 @@ export default function ClientHome({
         usePlayerStore.setState({
           targetLanguage: initialLang,
           uiLanguage: initialLang,
-          countryCode: initialCountry,
-          clientIp: initialIp,
           isInitialized: true,
         });
       }
       initialized.current = true;
     }
-  }, [initialLang, initialCountry, initialIp, isInitialized]);
+  }, [initialLang, isInitialized]);
 
   // Handle Initial Track Data for Lyric Pages
   useEffect(() => {
-    if (initialTrack && isLyricPageInitial) {
-      // Split plain lyrics by newline and convert to LyricsLine format
-      // In future, we should use syncedLyrics for better experience
-      const lyricsText = initialTrack.lyrics;
+    if (!initialTrack || !isLyricPageInitial) return;
 
-      if (!lyricsText || lyricsText === "Lyrics not found.") {
-        usePlayerStore.setState({
-          title: initialTrack.title,
-          artist: initialTrack.artist,
-          albumArt: initialTrack.albumArt,
-          lyrics: [], // No lyrics available
-          isPlaying: false, // It's static view initially
-          provider: "none",
-          isInitialized: true,
-          // Use provided ID (from URL) if available
-          trackId:
-            initialTrack.id ||
-            `static-${initialTrack.artist}-${initialTrack.title}`
-              .replace(/\s+/g, "-")
-              .toLowerCase(),
-          isLoadingLyrics: false, // Loading finished, but no lyrics
-        });
-        return;
-      }
+    const trackIdForStore =
+      initialTrack.id || staticTrackKey(initialTrack.artist, initialTrack.title);
 
-      const trackIdForStore =
-        initialTrack.id ||
-        `static-${initialTrack.artist}-${initialTrack.title}`
-          .replace(/\s+/g, "-")
-          .toLowerCase();
+    // 사용자가 이 곡을 직접 열었다는 사실을 고정해 둡니다.
+    // 이렇게 해 두면 스포티파이에서 다른 곡이 재생 중이어도 폴러가
+    // 화면의 곡 정보를 덮어쓰지 않습니다.
+    const baseState = {
+      title: initialTrack.title,
+      artist: initialTrack.artist,
+      albumArt: initialTrack.albumArt,
+      duration: initialTrack.duration ?? 0,
+      isPlaying: false, // It's static view initially
+      progress: 0,
+      progressMs: 0,
+      provider: "none" as const,
+      isInitialized: true,
+      trackId: trackIdForStore,
+      pinnedTrackId: trackIdForStore,
+    };
 
-      let lyricsArray: LyricsLine[] = [];
-      if (initialTrack.syncedLyrics) {
-        lyricsArray = parseLrc(initialTrack.syncedLyrics);
-      } else {
-        const lyricsLines = lyricsText.split("\n");
-        lyricsArray = lyricsLines
-          .filter((line) => line.trim().length > 0)
-          .map((line, index) => ({
-            id: `line-${index}`,
-            time: index * 3000,
-            text: line.trim(),
-          }));
-      }
-      // trackId 접두사로 originalLyrics 설정 → 클라이언트에서 같은 곡 LRCLIB 재호출 방지
-      const originalLyricsWithId = lyricsArray.map((line, idx) => ({
-        ...line,
-        id: `${trackIdForStore}-${idx}`,
-      }));
+    // Split plain lyrics by newline and convert to LyricsLine format
+    // In future, we should use syncedLyrics for better experience
+    const lyricsText = initialTrack.lyrics;
 
+    if (!lyricsText || lyricsText === "Lyrics not found.") {
       usePlayerStore.setState({
-        title: initialTrack.title,
-        artist: initialTrack.artist,
-        albumArt: initialTrack.albumArt,
-        lyrics: originalLyricsWithId,
-        originalLyrics: originalLyricsWithId,
-        isPlaying: false,
-        provider: "none",
-        isInitialized: true,
-        trackId: trackIdForStore,
-        isLoadingLyrics: false,
+        ...baseState,
+        lyrics: [], // No lyrics available
+        isLoadingLyrics: false, // Loading finished, but no lyrics
       });
+      return;
     }
+
+    let lyricsArray: LyricsLine[] = [];
+    if (initialTrack.syncedLyrics) {
+      lyricsArray = parseLrc(initialTrack.syncedLyrics);
+    } else {
+      const lyricsLines = lyricsText.split("\n");
+      lyricsArray = lyricsLines
+        .filter((line) => line.trim().length > 0)
+        .map((line, index) => ({
+          id: `line-${index}`,
+          time: index * 3000,
+          text: line.trim(),
+        }));
+    }
+    // trackId 접두사로 originalLyrics 설정 → 클라이언트에서 같은 곡 LRCLIB 재호출 방지
+    const originalLyricsWithId = lyricsArray.map((line, idx) => ({
+      ...line,
+      id: `${trackIdForStore}-${idx}`,
+    }));
+
+    usePlayerStore.setState({
+      ...baseState,
+      lyrics: originalLyricsWithId,
+      originalLyrics: originalLyricsWithId,
+      isLoadingLyrics: false,
+    });
   }, [initialTrack, isLyricPageInitial]);
+
+  // 곡 상세 페이지를 벗어나면 고정을 해제해, 다시 재생 중인 곡을 따라가게 합니다.
+  useEffect(() => {
+    if (!isLyricPageInitial) return;
+    return () => {
+      usePlayerStore.setState({ pinnedTrackId: null });
+    };
+  }, [isLyricPageInitial]);
 
   const uiLang = initialLang;
   const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
@@ -385,7 +385,9 @@ export default function ClientHome({
     if (typeof window === "undefined") return;
     const currentPath = window.location.pathname;
     if (isPlaying && trackId && title && artist && (currentPath === "/lyric" || currentPath === "/lyric/")) {
-      router.replace(encodeTrackUrl(artist, title));
+      router.replace(
+        encodeTrackUrl(artist, title, parseTrackKey(trackId) ?? undefined)
+      );
     }
   }, [isPlaying, trackId, router, title, artist]);
 

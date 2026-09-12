@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.89.0",
+    "@vercel/analytics": "^2.0.1",
     "axios": "^1.13.2",
     "google-translate-api-x": "^10.7.2",
     "lucide-react": "^0.562.0",

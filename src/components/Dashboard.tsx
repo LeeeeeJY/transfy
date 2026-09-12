@@ -134,7 +134,13 @@ export default function Dashboard({
               <div
                 key={`${track.id}-${i}`}
                 onClick={() =>
-                  router.push(encodeTrackUrl(track.artist, track.title))
+                  router.push(
+                    // 최근 재생 목록은 스포티파이에서 받아오므로 트랙 ID를 함께 넘깁니다.
+                    encodeTrackUrl(track.artist, track.title, {
+                      id: track.id,
+                      source: "spotify",
+                    })
+                  )
                 }
                 className="group bg-zinc-900/50 hover:bg-zinc-800 rounded-lg p-4 transition-all border border-white/5 hover:border-white/10 cursor-pointer"
               >

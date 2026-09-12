@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
-import { usePlayerStore, LyricsLine } from "@/store/usePlayerStore";
-import { translateText } from "@/app/actions/translate";
-import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
+import { useEffect, useRef, useMemo } from "react";
+import { usePlayerStore } from "@/store/usePlayerStore";
 import { usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
@@ -65,22 +63,19 @@ export default function LyricsView({
     progressMs,
     isLoadingLyrics,
     showTranslation,
+    isTranslating,
     setLyrics,
     setLoadingLyrics,
     setOriginalLyrics,
     setLyricsRetryTrigger,
-    targetLanguage,
     uiLanguage,
-    countryCode,
-    clientIp,
+    pinnedTrackId,
     trackId: storeTrackId,
     setLyrics: setStoreLyrics,
     setPlayback: setStorePlayback
   } = usePlayerStore();
 
-  const [isTranslating, setIsTranslating] = useState(false);
   const pathname = usePathname();
-  const [currentTrackId] = useState<string | null>(null);
 
   // Extract trackId from URL using pathname prop for consistency
   const getTrackIdFromUrl = (): string | null => {
@@ -108,8 +103,11 @@ export default function LyricsView({
 
   const urlTrackId = getTrackIdFromUrl();
 
-  // Check mismatch immediately for rendering
-  const isIdMismatch = urlTrackId && storeTrackId && urlTrackId !== storeTrackId;
+  // Check mismatch immediately for rendering.
+  // 사용자가 검색 결과에서 직접 선택한 곡(pinnedTrackId)이 있으면 서버가 확정한
+  // 곡 정보가 정답이므로, URL에서 유추한 ID와 비교하지 않습니다.
+  const isIdMismatch =
+    !pinnedTrackId && urlTrackId && storeTrackId && urlTrackId !== storeTrackId;
 
   // Check if URL trackId matches store trackId and clear lyrics if mismatch
   useEffect(() => {
@@ -141,33 +139,6 @@ export default function LyricsView({
   // Then fallback to store value (which syncs with client preference)
   const currentUiLang = initialUiLanguage || uiLanguage || "en";
 
-  // Get current track info from store for logging
-  const { title, artist } = usePlayerStore.getState();
-
-  // Client info for logging
-  const getClientLogInfo = () => {
-    if (typeof window === "undefined") {
-      return {
-        user_agent: "unknown",
-        referer: "unknown",
-        device_type: "unknown",
-      };
-    }
-
-    const ua = window.navigator.userAgent || "unknown";
-    const ref = document.referrer || "unknown";
-    const isMobile = /mobile|android|iphone|ipad/i.test(ua.toLowerCase());
-
-    return {
-      user_agent: ua,
-      referer: ref,
-      device_type: isMobile ? "mobile" : "desktop",
-      ip_address: clientIp, // Use IP from store
-    };
-  };
-
-  // ...
-
   // Get current language text
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = UI_TEXT[currentUiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
@@ -175,110 +146,8 @@ export default function LyricsView({
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Helper function for translation
-  const translateAndSetLyrics = async (
-    trackId: string,
-    trackTitle: string,
-    trackArtist: string,
-    rawLyrics: LyricsLine[]
-  ) => {
-    try {
-      setIsTranslating(true);
-      // Try DB Cache First
-      const cachedData = await getCachedLyrics(trackId, targetLanguage);
-      const clientInfo = getClientLogInfo();
-
-      if (cachedData) {
-        console.log("Using cached lyrics for:", trackId);
-        setLyrics(cachedData);
-
-        await logActivity("translate_view", {
-          track_name: trackTitle,
-          artist: trackArtist,
-          target_lang: targetLanguage,
-          user_email: "guest",
-          is_cached: true,
-          country_code: countryCode,
-          ...clientInfo,
-        });
-      } else {
-        console.log("Translating lyrics for:", trackId);
-        // Only translate first 50 lines to save tokens if needed, but for now translate all
-        const textsToTranslate = rawLyrics.map((l) => l.text);
-
-        // Chunk translation if too long? 
-        // translateText handles array, but if array is huge it might fail. 
-        // For now assume lyrics < 100 lines usually.
-        const translatedTexts = await translateText(
-          textsToTranslate,
-          targetLanguage
-        );
-
-        const translatedLyrics = rawLyrics.map((line, index) => ({
-          ...line,
-          translation: translatedTexts[index],
-        }));
-
-        setLyrics(translatedLyrics);
-
-        // Save to DB
-        await saveCachedLyrics(trackId, targetLanguage, translatedLyrics);
-
-        await logActivity("translate_view", {
-          track_name: trackTitle,
-          artist: trackArtist,
-          target_lang: targetLanguage,
-          user_email: "guest",
-          is_cached: false,
-          country_code: countryCode,
-          ...clientInfo,
-        });
-      }
-    } catch (error) {
-      console.error("Translation failed", error);
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  // Auto-translate for static lyrics (e.g. from Search)
-  useEffect(() => {
-    const isStaticMode = usePlayerStore.getState().provider === 'none';
-    const hasLyrics = lyrics.length > 0;
-
-    // Check if we need translation: showTranslation is on
-    // Removed lyrics.some(l => !l.translation) check to allow re-translation when targetLanguage changes
-    const shouldTranslate = showTranslation;
-
-    // Use title/artist from store as ID proxy for static tracks
-    // Ideally we should have a real ID, but for search results we might not have a stable one unless we hash artist+title
-    const { title, artist } = usePlayerStore.getState();
-
-    if (isStaticMode && hasLyrics && shouldTranslate && title && artist) {
-      // Use a composite ID for caching
-      const compositeId = `static-${artist}-${title}`.replace(/\s+/g, '-').toLowerCase();
-
-      translateAndSetLyrics(compositeId, title, artist, lyrics);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTranslation, targetLanguage, lyrics.length, title, artist]); // Trigger when settings change or when lyrics load
-
-  // Re-translate when targetLanguage changes (Old logic refactored)
-  useEffect(() => {
-    // Check if we need re-translation
-    // Use store state directly to catch updates
-    const store = usePlayerStore.getState();
-    const trackIdToUse = store.trackId || currentTrackId;
-
-    if (!trackIdToUse || lyrics.length === 0 || !showTranslation) return;
-
-    // This is mainly for Realtime/Test mode where we have a trackId
-    // For static mode, the effect above handles it
-    if (store.provider !== 'none') {
-      translateAndSetLyrics(trackIdToUse, store.title, store.artist, lyrics);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetLanguage, showTranslation]);
+  // 가사 조회와 번역은 useLyricsFetcher(ClientHome에서 실행)가 담당합니다.
+  // 여기서 다시 번역하면 같은 곡을 두 번 번역하게 되므로 호출하지 않습니다.
 
   // Find active line efficiently
   const activeIndex = useMemo(() => {

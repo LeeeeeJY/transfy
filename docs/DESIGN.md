@@ -16,10 +16,17 @@
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand (Global Player State)
 - **Auth**: NextAuth.js (Spotify Provider)
+- **Analytics**: Vercel Web Analytics (`@vercel/analytics`)
+- **Cache**: Next.js 데이터 캐시 (배포 환경에서는 Vercel Data Cache)
 - **External APIs**:
     - Spotify Web API (Playback State)
     - LRCLIB (Open Source Lyrics API)
     - Google Translate API (google-translate-api-x)
+
+> 별도의 데이터베이스는 사용하지 않습니다. 예전에는 Supabase에 번역 캐시와
+> 접속 로그를 저장했지만, 무료 플랜에서 프로젝트가 일정 기간 후 자동으로
+> 일시 중지되어 서비스가 멈추는 문제가 있었습니다. 번역 캐시는 Next.js
+> 데이터 캐시로, 접속 통계는 Vercel Web Analytics로 각각 옮겼습니다.
 
 ## 3. 시스템 아키텍처 (Architecture)
 
@@ -31,15 +38,28 @@
     - 트랙이 변경되면 `LRCLIB` API에 `track_name`, `artist_name`, `duration`을 보내 싱크 가사를 요청합니다.
     - 가사가 없으면 에러 메시지를 표시합니다.
 4. **번역 (Translation)**:
-    - 가져온 가사는 서버 액션(`translateText`)을 통해 구글 번역 API로 전송됩니다.
+    - 가져온 가사는 서버 액션(`translateLines`)을 통해 구글 번역 API로 전송됩니다.
+    - 번역 결과는 `unstable_cache`로 감싸 30일간 서버 캐시에 저장하므로, 같은 곡과
+      같은 언어 조합은 한 번만 번역합니다. 캐시 계층에 문제가 생기면 캐시를 건너뛰고
+      번역을 다시 시도하여 기능 자체는 계속 동작합니다.
     - 번역된 텍스트는 원문 가사 객체에 병합되어 상태 관리 스토어(`usePlayerStore`)에 저장됩니다.
 5. **렌더링 (Rendering)**:
     - `LyricsView` 컴포넌트는 `progress_ms`와 가사 타임스탬프를 비교하여 현재 활성 라인을 강조하고 자동으로 스크롤합니다.
 
+### 3.1.1 곡 식별 (Track Identity)
+검색 결과나 차트에서 곡을 선택하면 `/track/{artist}/{title}?id={트랙 ID}&src={spotify|itunes}`
+형태로 이동합니다. 상세 페이지는 이 ID로 곡을 직접 조회하기 때문에, 제목으로 다시
+검색하다가 동명이곡이나 리믹스가 열리는 일이 없습니다. ID가 없는 접속(검색 엔진 유입,
+직접 입력)에서는 제목으로 검색한 뒤 `normalizeForMatch`로 표기를 정규화해 아티스트와
+제목이 확실히 일치하는 후보만 채택하고, 없으면 URL의 값을 그대로 사용합니다.
+
+또한 사용자가 직접 선택한 곡은 `pinnedTrackId`로 고정해 두므로, 스포티파이에서
+다른 곡이 재생 중이어도 폴러가 화면의 곡 정보를 덮어쓰지 않습니다.
+
 ### 3.2 상태 관리 (Zustand Store)
 `usePlayerStore`는 애플리케이션의 전역 상태를 관리합니다.
-- **Playback**: `isPlaying`, `trackId`, `title`, `artist`, `progressMs`
-- **Lyrics**: `lyrics` (Array of time, text, translation), `isLoadingLyrics`
+- **Playback**: `isPlaying`, `trackId`, `pinnedTrackId`, `title`, `artist`, `progressMs`
+- **Lyrics**: `lyrics` (Array of time, text, translation), `isLoadingLyrics`, `isTranslating`
 - **Settings**: `showTranslation`, `targetLanguage`
 
 ## 4. 디렉토리 구조 (Directory Structure)

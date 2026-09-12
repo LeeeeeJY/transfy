@@ -18,7 +18,8 @@ import {
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useSession } from "next-auth/react";
 import { play } from "@/lib/spotify";
-import { encodeTrackUrl } from "@/lib/utils";
+import { encodeTrackUrl, type TrackSource } from "@/lib/utils";
+import { trackLyricsOpen, trackSearch } from "@/lib/analytics";
 
 interface SearchClientProps {
   initialLang: string;
@@ -187,6 +188,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
         setResults(data);
         setResultsOffset(10);
         setHasMoreResults(data.length === 10);
+        trackSearch(initialLang, data.length > 0);
       } catch (err) {
         console.error(err);
         setError("Failed to search tracks.");
@@ -237,9 +239,22 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     handleSearch(query);
   };
 
-  const handleTrackClick = async (track: Track) => {
+  /** 검색 결과의 트랙이 어느 서비스에서 왔는지 판별합니다. */
+  const trackSourceOf = (track: Track): TrackSource =>
+    track.uri?.startsWith("spotify:") ? "spotify" : "itunes";
+
+  const handleTrackClick = async (
+    track: Track,
+    origin: "search" | "charts"
+  ) => {
     setPlayError(null);
-    const trackPath = encodeTrackUrl(track.artist, track.title);
+    // 트랙 ID를 함께 넘겨야 상세 페이지가 제목으로 다시 검색하지 않고
+    // 사용자가 누른 바로 그 곡을 불러옵니다.
+    const trackPath = encodeTrackUrl(track.artist, track.title, {
+      id: track.id,
+      source: trackSourceOf(track),
+    });
+    trackLyricsOpen(origin, initialLang);
     if (session?.accessToken) {
       const playOk = await play(session.accessToken, track.uri, deviceId);
       setTrack(track);
@@ -324,7 +339,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
           {results.map((track) => (
             <div
               key={track.id}
-              onClick={() => handleTrackClick(track)}
+              onClick={() => handleTrackClick(track, "search")}
               className="flex items-center gap-4 bg-zinc-900/50 hover:bg-zinc-800 p-4 rounded-xl border border-zinc-800/50 hover:border-zinc-700 transition-all group text-left w-full cursor-pointer h-24 overflow-hidden"
             >
               {/* Album Art */}
@@ -400,7 +415,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                 {topCharts.map((track, index) => (
                   <div
                     key={track.id}
-                    onClick={() => handleTrackClick(track)}
+                    onClick={() => handleTrackClick(track, "charts")}
                     className="flex items-center gap-4 bg-zinc-900/30 hover:bg-zinc-800 p-4 rounded-xl border border-zinc-800/30 hover:border-zinc-700 transition-all group text-left w-full cursor-pointer h-20 overflow-hidden"
                   >
                     {/* Rank */}

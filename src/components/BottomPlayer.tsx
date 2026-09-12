@@ -6,7 +6,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import Image from "next/image";
 import { Play, Pause, SkipForward, SkipBack, FileText, Globe, Languages } from "lucide-react";
 import { play, pause, next, previous } from "@/lib/spotify";
-import { encodeTrackUrl } from "@/lib/utils";
+import { encodeTrackUrl, parseTrackKey } from "@/lib/utils";
 
 export default function BottomPlayer() {
   const { data: session } = useSession();
@@ -16,6 +16,7 @@ export default function BottomPlayer() {
     artist,
     albumArt,
     duration,
+    trackId,
     isPlaying, 
     progress, 
     setIsPlaying, 
@@ -25,7 +26,8 @@ export default function BottomPlayer() {
     toggleTranslation,
     isSdkReady,
     player,
-    deviceId
+    deviceId,
+    pinnedTrackId
   } = usePlayerStore();
 
   // Play/Pause Toggle
@@ -39,7 +41,17 @@ export default function BottomPlayer() {
         await pause(session.accessToken);
         setIsPlaying(false);
       } else {
-        const ok = await play(session.accessToken, undefined, deviceId);
+        // 곡 상세 페이지를 열어 둔 상태에서 아직 아무것도 동기화되지 않았다면
+        // (재생 중이 아니고 진행 위치가 0), 재생 버튼은 화면에 보이는 그 곡을
+        // 재생해야 합니다. 그렇지 않으면 직전에 듣던 다른 곡이 재생됩니다.
+        const pinnedRef = parseTrackKey(pinnedTrackId);
+        const shouldStartPinnedTrack =
+          pinnedRef?.source === "spotify" && progress === 0;
+        const uri = shouldStartPinnedTrack
+          ? `spotify:track:${pinnedRef!.id}`
+          : undefined;
+
+        const ok = await play(session.accessToken, uri, deviceId);
         if (ok) setIsPlaying(true);
         // 404 등 실패 시 재생 상태는 바꾸지 않음 (활성 기기 없음 등)
       }
@@ -125,7 +137,12 @@ export default function BottomPlayer() {
           </button>
           {title && artist ? (
             <button
-              onClick={() => router.push(encodeTrackUrl(artist, title))}
+              onClick={() =>
+                router.push(
+                  // 재생 중인 곡의 트랙 ID를 함께 넘겨 정확한 곡을 엽니다.
+                  encodeTrackUrl(artist, title, parseTrackKey(trackId) ?? undefined)
+                )
+              }
               className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full touch-manipulation flex-shrink-0"
               title="가사 보기"
               aria-label="가사 보기"

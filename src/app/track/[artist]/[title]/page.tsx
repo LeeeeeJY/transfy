@@ -1,10 +1,19 @@
 import { Metadata } from "next";
 import { cache } from "react";
 import ClientHome from "@/components/ClientHome";
-import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
+import { getLanguageFromHeaders } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
-import { decodeTrackUrlParam, cleanTitle } from "@/lib/utils";
-import { searchTracksAction } from "@/app/actions/search";
+import {
+  decodeTrackUrlParam,
+  cleanTitle,
+  normalizeForMatch,
+  externalTrackKey,
+  staticTrackKey,
+  encodeTrackUrl,
+  type TrackSource,
+} from "@/lib/utils";
+import { pickBestMatch } from "@/lib/track-match";
+import { searchTracksAction, getTrackByIdAction } from "@/app/actions/search";
 
 type Props = {
   params: Promise<{ artist: string; title: string }>;
@@ -13,126 +22,127 @@ type Props = {
 
 // Unified Track Info Interface
 interface TrackInfo {
+  /** 스토어에서 사용할 곡 키 */
+  id: string;
   title: string;
   artist: string;
   albumArt: string;
+  duration: number; // seconds
   lyrics: string | null;
   syncedLyrics?: string | null; // LRC format
 }
 
-const getTrackInfo = cache(async (artistSlug: string, titleSlug: string): Promise<TrackInfo | null> => {
-  const artist = decodeTrackUrlParam(artistSlug);
-  const title = decodeTrackUrlParam(titleSlug);
-  const lang = await getLanguageFromHeaders(); // Get user language preference
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-  // 1. Check Dummy Data first (Fastest)
-  const dummySong = POPULAR_SONGS.find(s =>
-    s.artist.toLowerCase() === artist.toLowerCase() &&
-    s.title.toLowerCase() === title.toLowerCase()
-  );
+function parseSource(value: string | undefined): TrackSource | null {
+  return value === "spotify" || value === "itunes" ? value : null;
+}
 
-  if (dummySong) {
-    return {
-      title: dummySong.title,
-      artist: dummySong.artist,
-      albumArt: dummySong.albumArt,
-      lyrics: dummySong.lyrics,
-      syncedLyrics: null // Dummy data doesn't have LRC yet, assume plain text
-    };
-  }
+const getTrackInfo = cache(
+  async (
+    artistSlug: string,
+    titleSlug: string,
+    refId: string,
+    refSource: string
+  ): Promise<TrackInfo | null> => {
+    const artist = decodeTrackUrlParam(artistSlug);
+    const title = decodeTrackUrlParam(titleSlug);
+    const fallbackId = staticTrackKey(artist, title);
 
-  // 2. Fetch Real Data (Parallel)
-  try {
-    // Use Server Action for search (handles both Spotify and iTunes fallback)
-    // 1. Try Exact Search
-    let searchResultTracks = await searchTracksAction(`${artist} ${title}`, lang);
+    // 1. Check Dummy Data first (Fastest)
+    const dummySong = POPULAR_SONGS.find(
+      (s) =>
+        normalizeForMatch(s.artist) === normalizeForMatch(artist) &&
+        normalizeForMatch(s.title) === normalizeForMatch(title)
+    );
 
-    // 2. If no results, try Cleaned Title Search (Remove Feat, etc.)
-    if (searchResultTracks.length === 0) {
-      const cleanedTitle = cleanTitle(title);
-      if (cleanedTitle !== title) {
-        console.log(`Retrying search with cleaned title: ${artist} ${cleanedTitle}`);
-        searchResultTracks = await searchTracksAction(`${artist} ${cleanedTitle}`, lang);
+    if (dummySong) {
+      return {
+        id: fallbackId,
+        title: dummySong.title,
+        artist: dummySong.artist,
+        albumArt: dummySong.albumArt,
+        duration: 0,
+        lyrics: dummySong.lyrics,
+        syncedLyrics: null, // Dummy data doesn't have LRC yet, assume plain text
+      };
+    }
+
+    // 2. 검색 결과나 차트에서 넘어온 경우: ID로 그 곡을 정확히 조회합니다.
+    const source = parseSource(refSource);
+    if (refId && source) {
+      const exact = await getTrackByIdAction(refId, source);
+      if (exact) {
+        return {
+          id: externalTrackKey(source, exact.id),
+          title: exact.title,
+          artist: exact.artist,
+          albumArt: exact.albumArt || "/file.svg",
+          duration: exact.duration,
+          lyrics: null, // 가사는 클라이언트(useLyricsFetcher)에서 LRCLIB로 조회
+          syncedLyrics: null,
+        };
       }
     }
 
-    // 3. If still no results, try just Title (Artist might be different format)
-    if (searchResultTracks.length === 0) {
-       console.log(`Retrying search with just title: ${title}`);
-       // Search by title only, then filter by artist locally
-       const titleOnlyResults = await searchTracksAction(title, lang);
-       searchResultTracks = titleOnlyResults.filter(t => 
-         t.artist.toLowerCase().includes(artist.toLowerCase()) || 
-         artist.toLowerCase().includes(t.artist.toLowerCase())
-       );
-    }
+    // 3. ID가 없는 경우(직접 접속, 검색 엔진 유입, 사이트맵)에만 제목으로 검색합니다.
+    try {
+      const lang = await getLanguageFromHeaders();
 
-    // 가사는 서버에서 LRCLIB 호출하지 않음 (타임아웃/불안정 시 페이지 16초+ 대기 방지). 클라이언트에서만 요청.
-    const itunesTracks = searchResultTracks;
+      // 3-1. 아티스트 + 제목으로 검색
+      let searchResultTracks = await searchTracksAction(`${artist} ${title}`, lang);
+      let best = pickBestMatch(searchResultTracks, artist, title);
 
-    // Find best match from iTunes
-    // Filter candidates first
-    const candidates = itunesTracks.filter(t => {
-      const tArtist = t.artist.toLowerCase();
-      const tTitle = t.title.toLowerCase();
-      const searchArtist = artist.toLowerCase();
-      const searchTitle = title.toLowerCase();
-      const cleanedSearchTitle = cleanTitle(title).toLowerCase();
+      // 3-2. 부가 표기(feat 등)를 뗀 제목으로 재검색
+      if (!best) {
+        const cleanedTitle = cleanTitle(title);
+        if (cleanedTitle !== title) {
+          searchResultTracks = await searchTracksAction(`${artist} ${cleanedTitle}`, lang);
+          best = pickBestMatch(searchResultTracks, artist, title);
+        }
+      }
 
-      // Check Artist Match
-      const artistMatch = tArtist.includes(searchArtist) || searchArtist.includes(tArtist);
+      // 3-3. 제목만으로 검색 (아티스트 표기가 다른 경우: BTS / 방탄소년단)
+      if (!best) {
+        searchResultTracks = await searchTracksAction(title, lang);
+        best = pickBestMatch(searchResultTracks, artist, title);
+      }
 
-      // Check Title Match (Original OR Cleaned)
-      const titleMatch = tTitle.includes(searchTitle) || searchTitle.includes(tTitle) || 
-                         tTitle.includes(cleanedSearchTitle) || cleanedSearchTitle.includes(tTitle);
+      // 확실한 후보가 없으면 URL의 제목·아티스트를 그대로 씁니다.
+      // 다른 곡을 보여 주는 것보다, 곡 정보 없이 가사를 찾아보는 편이 낫습니다.
+      if (!best) return null;
 
-      return artistMatch && titleMatch;
-    });
-
-    // Sort candidates to find the best match
-    // Priority:
-    // 1. Exact Title Match
-    // 2. Shortest Title Length (prefer original over remixes)
-    candidates.sort((a, b) => {
-      const searchTitle = title.toLowerCase();
-      const aTitle = a.title.toLowerCase();
-      const bTitle = b.title.toLowerCase();
-
-      const aExact = aTitle === searchTitle;
-      const bExact = bTitle === searchTitle;
-
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-
-      return aTitle.length - bTitle.length;
-    });
-
-    const trackMetadata = candidates[0];
-
-    if (!trackMetadata) {
+      return {
+        id: fallbackId,
+        title: best.title,
+        artist: best.artist,
+        albumArt: best.albumArt || "/file.svg",
+        duration: best.duration,
+        lyrics: null,
+        syncedLyrics: null,
+      };
+    } catch (e) {
+      console.error("Error fetching track info:", e);
       return null;
     }
-
-    return {
-      title: trackMetadata.title || title,
-      artist: trackMetadata.artist || artist,
-      albumArt: trackMetadata.albumArt || "/file.svg",
-      lyrics: "Lyrics not found.", // 클라이언트(useLyricsFetcher)에서 LRCLIB 호출
-      syncedLyrics: null
-    };
-  } catch (e) {
-    console.error("Error fetching track info:", e);
-    return null;
   }
-});
+);
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { artist, title } = await params;
+  const query = await searchParams;
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
 
   // Fetch real info for better metadata
-  const trackInfo = await getTrackInfo(artist, title);
+  const trackInfo = await getTrackInfo(
+    artist,
+    title,
+    firstParam(query.id) ?? "",
+    firstParam(query.src) ?? ""
+  );
   const displayTitle = trackInfo?.title || decodedTitle;
   const displayArtist = trackInfo?.artist || decodedArtist;
 
@@ -144,6 +154,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: pageTitle,
     description,
+    // 조회용 쿼리스트링은 색인에서 제외하고 경로만 대표 주소로 씁니다.
+    alternates: {
+      canonical: encodeTrackUrl(decodedArtist, decodedTitle),
+    },
     keywords: [
       `${displayTitle} lyrics`,
       `${displayArtist} lyrics`,
@@ -160,17 +174,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function TrackPage({ params }: Props) {
+export default async function TrackPage({ params, searchParams }: Props) {
   const { artist, title } = await params;
+  const query = await searchParams;
 
-  const trackInfo = await getTrackInfo(artist, title);
+  const trackInfo = await getTrackInfo(
+    artist,
+    title,
+    firstParam(query.id) ?? "",
+    firstParam(query.src) ?? ""
+  );
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
 
   // Common props
   const initialLang = await getLanguageFromHeaders();
-  const initialCountry = await getCountryFromHeaders();
-  const initialIp = await getClientIp();
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -208,17 +226,16 @@ export default async function TrackPage({ params }: Props) {
 
       <ClientHome
         initialLang={initialLang}
-        initialCountry={initialCountry}
-        initialIp={initialIp}
         isLyricPageInitial={true}
         // Pass the fetched track info to ClientHome
         initialTrack={{
-          // Generate ID based on URL parameters to ensure it matches client-side URL parsing
-          // This prevents "ID Mismatch" errors when API returns different artist name (e.g. BTS vs 방탄소년단)
-          id: `static-${decodedArtist}-${decodedTitle}`.replace(/\s+/g, '-').toLowerCase(),
+          // ID로 정확히 조회한 곡은 그 ID를, 그러지 못한 곡은 URL에서 만든 키를 씁니다.
+          // URL 기준 키를 쓰면 API가 다른 표기(BTS / 방탄소년단)를 돌려줘도 어긋나지 않습니다.
+          id: trackInfo?.id || staticTrackKey(decodedArtist, decodedTitle),
           title: trackInfo?.title || decodedTitle,
           artist: trackInfo?.artist || decodedArtist,
           albumArt: trackInfo?.albumArt || "",
+          duration: trackInfo?.duration || 0,
           lyrics: trackInfo?.lyrics || "",
           syncedLyrics: trackInfo?.syncedLyrics || null
         }}

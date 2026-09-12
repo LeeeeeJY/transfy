@@ -19,6 +19,10 @@ SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
 
+데이터베이스는 사용하지 않으므로 별도의 DB 접속 정보는 필요하지 않습니다.
+`SPOTIFY_CLIENT_ID`와 `SPOTIFY_CLIENT_SECRET`은 로그인 외에도, 로그인하지 않은
+방문자가 공유 링크로 들어왔을 때 트랙 ID로 곡 정보를 조회하는 데 사용됩니다.
+
 ## 3. 설치 및 실행 (Installation & Run)
 
 ```bash
@@ -48,6 +52,9 @@ npm run dev
    - 주의: `NEXTAUTH_URL`은 배포된 도메인 주소(예: `https://transfy-wine.vercel.app`)로 변경해야 합니다.
 4. **Deploy** 버튼을 누릅니다.
 5. 배포 완료 후, 각 플랫폼(Spotify) 대시보드에서 Redirect URI 및 도메인 설정을 배포된 도메인(`https://transfy-wine.vercel.app`)으로 업데이트해야 정상 작동합니다.
+6. Vercel 프로젝트의 **Analytics** 탭에서 Web Analytics를 활성화하면 방문 통계와
+   커스텀 이벤트(`lyrics_open`, `lyrics_result`, `translate`, `search`)가 수집됩니다.
+   활성화하지 않아도 애플리케이션은 정상 동작하며, 수집만 이루어지지 않습니다.
 
 ## 6. 트러블슈팅 (Troubleshooting)
 
@@ -57,3 +64,9 @@ npm run dev
 - **로그인이 안 돼요:**
   - 환경 변수(`CLIENT_ID`, `SECRET`)가 정확한지 확인하세요.
   - Redirect URI가 플랫폼 설정과 일치하는지 확인하세요.
+- **번역이 원문 그대로 나와요:**
+  - 무료 구글 번역 라이브러리가 일시적으로 요청을 차단한 경우입니다. 번역에 실패하면
+    원문을 그대로 표시하며, 잠시 후 다시 시도하면 정상적으로 번역됩니다.
+- **검색 결과를 눌렀는데 다른 곡이 열려요:**
+  - 상세 페이지 주소에 `?id=...&src=...`가 붙어 있는지 확인하세요. 이 값이 있으면
+    트랙 ID로 곡을 직접 조회하므로 다른 곡이 열리지 않습니다.

@@ -9,8 +9,8 @@ const PRIVACY_TEXT = {
     collectDesc: "Transfy를 사용할 때 다음과 같은 정보를 수집할 수 있습니다:",
     collectList: [
       "가사 동기화를 위한 음악 서비스 계정 정보 (Spotify)",
-      "서비스 개선을 위한 사용 데이터 (예: 번역된 노래, 언어 설정)",
-      "분석 및 보안을 위한 브라우저 및 기기 정보 (IP 주소, 사용자 에이전트)"
+      "서비스 개선을 위한 익명 사용 통계 (예: 번역 언어 선택, 가사 조회 성공 여부)",
+      "방문 통계를 집계하는 Vercel Web Analytics (쿠키를 사용하지 않으며, IP 주소를 저장하지 않습니다)"
     ],
     useTitle: "2. 정보 사용 방법",
     useDesc: "수집한 정보는 다음과 같이 사용됩니다:",
@@ -28,8 +28,8 @@ const PRIVACY_TEXT = {
     collectDesc: "When you use Transfy, we may collect the following information:",
     collectList: [
       "Music Service Account Information (Spotify) to sync lyrics.",
-      "Usage Data (e.g., songs translated, language preferences) for service improvement.",
-      "Browser and Device Information (IP address, User Agent) for analytics and security."
+      "Anonymous usage statistics (e.g., translation language, whether lyrics were found) for service improvement.",
+      "Vercel Web Analytics for aggregated page views (cookieless, and no IP addresses are stored)."
     ],
     useTitle: "2. How We Use Your Information",
     useDesc: "We use the information we collect to:",

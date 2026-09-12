@@ -1,13 +1,11 @@
 import { useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { parseLrc } from "@/lib/lrclib";
 import { getSyncedLyricsAction } from "@/app/actions/lyrics";
-import { translateText } from "@/app/actions/translate";
-import { getCachedLyrics, saveCachedLyrics, logActivity } from "@/lib/cache";
+import { translateLines } from "@/app/actions/translate";
+import { trackLyricsResult, trackTranslate } from "@/lib/analytics";
 
 export function useLyricsFetcher() {
-  const { data: session } = useSession();
   const {
     trackId,
     title,
@@ -15,123 +13,95 @@ export function useLyricsFetcher() {
     duration,
     targetLanguage,
     showTranslation,
-    clientIp,
-    countryCode,
     setLyrics,
     setLoadingLyrics,
-    originalLyrics,
     setOriginalLyrics,
+    setIsTranslating,
     lyricsRetryTrigger,
   } = usePlayerStore();
 
   useEffect(() => {
     if (!trackId || trackId.startsWith("dummy-") || !title || !artist) return;
 
+    // 곡이나 언어가 바뀌면 앞선 요청의 결과를 버립니다.
+    let cancelled = false;
+
     const fetchAndProcessLyrics = async () => {
-      // 1. Check if we need to fetch new lyrics
-      // We check if we have original lyrics for THIS track
-      const hasLyricsForCurrentTrack = originalLyrics.length > 0 && originalLyrics[0].id?.startsWith(trackId);
-      
-      let lyricsToProcess = originalLyrics;
+      // 1. 지금 곡의 원문 가사를 이미 가지고 있는지 확인합니다.
+      const currentOriginals = usePlayerStore.getState().originalLyrics;
+      const hasLyricsForCurrentTrack =
+        currentOriginals.length > 0 && currentOriginals[0].id?.startsWith(trackId);
+
+      let lyricsToProcess = currentOriginals;
 
       if (!hasLyricsForCurrentTrack) {
         setLoadingLyrics(true);
         setLyrics([]);
         setOriginalLyrics([]);
 
-        // 캐시 먼저 확인 (LRCLIB 실패해도 이전에 저장된 가사 표시)
-        const cachedData = await getCachedLyrics(trackId, targetLanguage);
-        if (cachedData && cachedData.length > 0) {
-          setLyrics(cachedData);
-          setOriginalLyrics(cachedData);
-          setLoadingLyrics(false);
-          return;
-        }
-
         const lrcRaw = await getSyncedLyricsAction(title, artist, "", duration);
+        if (cancelled) return;
 
         if (!lrcRaw) {
           setLyrics([]);
           setOriginalLyrics([]);
           setLoadingLyrics(false);
+          trackLyricsResult(false, targetLanguage);
           return;
         }
 
-        const parsedLyrics = parseLrc(lrcRaw);
-        lyricsToProcess = parsedLyrics.map((line, idx) => ({
+        // trackId를 접두사로 붙여 두면, 같은 곡에서 LRCLIB를 다시 호출하지 않습니다.
+        lyricsToProcess = parseLrc(lrcRaw).map((line, idx) => ({
           ...line,
           id: `${trackId}-${idx}`,
         }));
 
         setOriginalLyrics(lyricsToProcess);
-      } else {
-        // Use existing lyrics
-        lyricsToProcess = originalLyrics;
+        trackLyricsResult(true, targetLanguage);
       }
 
-      // 2. Process Lyrics (Translate or Pass-through)
-      if (!showTranslation) {
+      // 2. 번역이 꺼져 있거나 가사가 없으면 원문만 표시합니다.
+      if (!showTranslation || lyricsToProcess.length === 0) {
         setLyrics(lyricsToProcess);
         setLoadingLyrics(false);
         return;
       }
 
-      // Translation Logic
-      const cachedData = await getCachedLyrics(trackId, targetLanguage);
-      
-      const ua = typeof window !== "undefined" ? window.navigator.userAgent || "unknown" : "unknown";
-      const ref = typeof document !== "undefined" ? document.referrer || "unknown" : "unknown";
-      const isMobile = /mobile|android|iphone|ipad/i.test(ua.toLowerCase());
-      const clientInfo = {
-        user_agent: ua,
-        referer: ref,
-        device_type: isMobile ? "mobile" : "desktop",
-        ip_address: clientIp,
-      };
-
-      if (cachedData) {
-        console.log("Using cached lyrics for:", trackId);
-        setLyrics(cachedData);
-        
-        await logActivity("translate_real", {
-          user_email: session?.user?.email || "anonymous",
-          track_name: title,
-          artist,
-          target_lang: targetLanguage,
-          is_cached: true,
-          country_code: countryCode,
-          ...clientInfo,
-        });
-      } else {
-        const textsToTranslate = lyricsToProcess.map((l) => l.text);
-        try {
-          const translations = await translateText(textsToTranslate, targetLanguage);
-          const finalLyrics = lyricsToProcess.map((line, i) => ({
-            ...line,
-            translation: translations[i] || "",
-          }));
-          
-          setLyrics(finalLyrics);
-          await saveCachedLyrics(trackId, targetLanguage, finalLyrics);
-
-          await logActivity("translate_real", {
-            user_email: session?.user?.email || "anonymous",
-            track_name: title,
-            artist,
-            target_lang: targetLanguage,
-            is_cached: false,
-            country_code: countryCode,
-            ...clientInfo,
-          });
-        } catch (e) {
-          console.error("Translation failed", e);
-          setLyrics(lyricsToProcess);
-        }
-      }
+      // 3. 번역을 기다리는 동안 원문을 먼저 보여 주고, 번역은 서버 액션에서
+      //    처리합니다. 번역 결과는 서버 데이터 캐시에 저장됩니다.
+      setLyrics(lyricsToProcess);
       setLoadingLyrics(false);
+      setIsTranslating(true);
+
+      const { texts, fromCache, failed } = await translateLines(
+        lyricsToProcess.map((line) => line.text),
+        targetLanguage
+      );
+
+      if (cancelled) return;
+
+      if (!failed) {
+        setLyrics(
+          lyricsToProcess.map((line, i) => ({
+            ...line,
+            translation: texts[i] || "",
+          }))
+        );
+        trackTranslate(targetLanguage, fromCache);
+      }
+
+      setIsTranslating(false);
     };
 
     fetchAndProcessLyrics();
+
+    return () => {
+      cancelled = true;
+      // 이 정리 함수는 다음 요청이 시작되기 전에 동기적으로 실행되므로,
+      // 번역 표시 상태를 여기서 내려 두어야 화면에 남지 않습니다.
+      setIsTranslating(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     trackId,
     title,
@@ -141,5 +111,4 @@ export function useLyricsFetcher() {
     showTranslation,
     lyricsRetryTrigger, // "가사 다시 불러오기" 클릭 시 재요청
   ]);
-
 }

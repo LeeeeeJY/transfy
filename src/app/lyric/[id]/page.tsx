@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import ClientHome from "@/components/ClientHome";
-import { getLanguageFromHeaders, getCountryFromHeaders, getClientIp } from "@/lib/server-utils";
+import { getLanguageFromHeaders } from "@/lib/server-utils";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 
 type Props = {
@@ -114,8 +114,6 @@ export default async function LyricPage({ params }: Props) {
   // Let's pass the props required by ClientHome.
   // In a real app, these come from headers/middleware.
   const initialLang = await getLanguageFromHeaders();
-  const initialCountry = await getCountryFromHeaders();
-  const initialIp = await getClientIp();
   const isDummyTrack = id.startsWith("dummy-");
 
   const track = await getTrackDetails(id);
@@ -168,8 +166,6 @@ export default async function LyricPage({ params }: Props) {
       )}
       <ClientHome
         initialLang={initialLang}
-        initialCountry={initialCountry}
-        initialIp={initialIp}
         isLyricPageInitial={true}
         isDummyTrack={isDummyTrack}
       />

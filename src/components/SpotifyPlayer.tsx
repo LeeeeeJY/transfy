@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { transferPlayback } from '@/lib/spotify';
+import { externalTrackKey } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -81,10 +82,15 @@ export default function SpotifyPlayer() {
         if (!state) return;
 
         const currentTrack = state.track_window.current_track;
-        
+        const playingKey = externalTrackKey('spotify', currentTrack.id);
+        const pinnedTrackId = usePlayerStore.getState().pinnedTrackId;
+
+        // 사용자가 직접 열어 둔 곡과 다른 곡이 재생되면 화면을 덮어쓰지 않습니다.
+        if (pinnedTrackId && pinnedTrackId !== playingKey) return;
+
         setPlayback({
           isPlaying: !state.paused,
-          trackId: currentTrack.id,
+          trackId: playingKey,
           title: currentTrack.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           artist: currentTrack.artists.map((a: any) => a.name).join(', '),

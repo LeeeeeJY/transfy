@@ -3,6 +3,8 @@
 import axios from 'axios';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getAppAccessToken } from "@/lib/spotify-app";
+import type { TrackSource } from "@/lib/utils";
 
 export interface Track {
   id: string;
@@ -182,6 +184,111 @@ async function searchTracksItunes(term: string, lang: string, limit: number, off
     console.error('iTunes Search Error:', error);
     return [];
   }
+}
+
+/** 스포티파이 트랙 ID 형식 (base62) */
+const SPOTIFY_ID_PATTERN = /^[A-Za-z0-9]{10,40}$/;
+/** 아이튠즈 트랙 ID 형식 (숫자) */
+const ITUNES_ID_PATTERN = /^\d{1,20}$/;
+
+function mapSpotifyTrack(item: SpotifyTrack): Track {
+  return {
+    id: item.id,
+    title: item.name,
+    artist: item.artists.map((a) => a.name).join(', '),
+    album: item.album?.name ?? '',
+    albumArt: item.album?.images?.[0]?.url || '',
+    duration: item.duration_ms / 1000,
+    uri: item.uri,
+  };
+}
+
+async function getSpotifyTrackById(id: string): Promise<Track | null> {
+  const session = await getServerSession(authOptions);
+
+  // 로그인한 사용자의 토큰을 먼저 쓰고, 없거나 실패하면 앱 토큰으로 조회합니다.
+  const fetchWithToken = async (token: string): Promise<Track | null> => {
+    const response = await axios.get<SpotifyTrack>(
+      `https://api.spotify.com/v1/tracks/${id}`,
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 8000 }
+    );
+    return response.data?.id ? mapSpotifyTrack(response.data) : null;
+  };
+
+  if (session?.accessToken) {
+    try {
+      return await fetchWithToken(session.accessToken as string);
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : null;
+      if (status === 404) return null;
+      console.warn('Spotify Track lookup with user token failed:', status ?? (error as Error)?.message);
+    }
+  }
+
+  const appToken = await getAppAccessToken();
+  if (!appToken) return null;
+
+  try {
+    return await fetchWithToken(appToken);
+  } catch (error) {
+    const status = axios.isAxiosError(error) ? error.response?.status : null;
+    if (status !== 404) {
+      console.warn('Spotify Track lookup failed:', status ?? (error as Error)?.message);
+    }
+    return null;
+  }
+}
+
+async function getItunesTrackById(id: string): Promise<Track | null> {
+  try {
+    const response = await axios.get('https://itunes.apple.com/lookup', {
+      params: { id, entity: 'song' },
+      timeout: 8000,
+    });
+
+    const item: ItunesTrack | undefined = (response.data?.results ?? []).find(
+      (r: ItunesTrack) => Boolean(r?.trackName)
+    );
+    if (!item) return null;
+
+    return {
+      id: String(item.trackId ?? id),
+      title: item.trackName,
+      artist: item.artistName,
+      album: item.collectionName ?? '',
+      albumArt: item.artworkUrl100?.replace('100x100', '600x600') ?? '',
+      duration: item.trackTimeMillis ? item.trackTimeMillis / 1000 : 0,
+      uri: '',
+    };
+  } catch (error) {
+    console.warn('iTunes Track lookup failed:', (error as Error)?.message || error);
+    return null;
+  }
+}
+
+/**
+ * 트랙 ID로 곡 하나를 정확히 조회합니다.
+ *
+ * 검색 결과에서 선택한 곡을 상세 페이지에서 제목으로 다시 검색하면 동명이곡이나
+ * 리믹스가 걸릴 수 있으므로, ID가 있을 때는 항상 이 함수로 조회합니다.
+ */
+export async function getTrackByIdAction(
+  id: string,
+  source: TrackSource
+): Promise<Track | null> {
+  if (!id) return null;
+
+  if (source === 'spotify') {
+    if (!SPOTIFY_ID_PATTERN.test(id)) return null;
+    return getSpotifyTrackById(id);
+  }
+
+  if (source === 'itunes') {
+    if (!ITUNES_ID_PATTERN.test(id)) return null;
+    return getItunesTrackById(id);
+  }
+
+  return null;
 }
 
 export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_range: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<Artist[] | Track[]> {

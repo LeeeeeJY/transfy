@@ -79,6 +79,7 @@ export const metadata: Metadata = {
   },
 };
 
+import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BottomPlayer from "@/components/BottomPlayer";
@@ -124,6 +125,7 @@ export default async function RootLayout({
           <BottomPlayer />
           <Footer />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
