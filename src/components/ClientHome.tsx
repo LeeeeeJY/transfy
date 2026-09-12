@@ -254,14 +254,12 @@ interface TrackInfo {
 interface ClientHomeProps {
   initialLang: "ko" | "en" | "ja" | "zh";
   isLyricPageInitial?: boolean;
-  isDummyTrack?: boolean;
   initialTrack?: TrackInfo;
 }
 
 export default function ClientHome({
   initialLang,
   isLyricPageInitial = false,
-  isDummyTrack = false,
   initialTrack,
 }: ClientHomeProps) {
   const { data: session } = useSession();
@@ -601,10 +599,7 @@ export default function ClientHome({
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
       <main className="flex-1 w-full bg-black flex flex-col">
-        <LyricsView
-          initialUiLanguage={initialLang}
-          isDummyTrack={isDummyTrack}
-        />
+        <LyricsView initialUiLanguage={initialLang} />
       </main>
 
       {session && <SpotifyPlayer />}

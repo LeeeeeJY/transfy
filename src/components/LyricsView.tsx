@@ -50,13 +50,9 @@ const UI_TEXT = {
 
 interface LyricsViewProps {
   initialUiLanguage?: string;
-  isDummyTrack?: boolean;
 }
 
-export default function LyricsView({
-  initialUiLanguage,
-  isDummyTrack: _isDummyTrack,
-}: LyricsViewProps) {
+export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   const { data: session } = useSession();
   const {
     lyrics,

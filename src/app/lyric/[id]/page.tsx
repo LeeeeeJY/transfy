@@ -15,32 +15,12 @@ async function getTrackDetails(id: string) {
     return {
       name: dummySong.title,
       artistName: dummySong.artist,
-      artwork: { url: dummySong.albumArt.replace("https://", "https://") } // Dummy logic
+      artwork: { url: dummySong.albumArt }
     };
   }
 
-  // 2. Fallback to Apple Music API (Removed)
-  // const token = process.env.NEXT_PUBLIC_APPLE_DEVELOPER_TOKEN;
-  // if (!token) return null;
-
+  // 이 경로는 더미 데이터 전용입니다. 실제 곡은 /track/[artist]/[title]에서 처리합니다.
   return null;
-
-  /*
-  try {
-    const response = await axios.get(
-      `https://api.music.apple.com/v1/catalog/us/songs/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data?.data?.[0]?.attributes;
-  } catch (error) {
-    console.error("Error fetching track details for SEO:", error);
-    return null;
-  }
-  */
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -114,7 +94,6 @@ export default async function LyricPage({ params }: Props) {
   // Let's pass the props required by ClientHome.
   // In a real app, these come from headers/middleware.
   const initialLang = await getLanguageFromHeaders();
-  const isDummyTrack = id.startsWith("dummy-");
 
   const track = await getTrackDetails(id);
   const dummySong = POPULAR_SONGS.find(s => s.id === id);
@@ -164,11 +143,7 @@ export default async function LyricPage({ params }: Props) {
           {dummySong.lyrics && <div>{dummySong.lyrics}</div>}
         </div>
       )}
-      <ClientHome
-        initialLang={initialLang}
-        isLyricPageInitial={true}
-        isDummyTrack={isDummyTrack}
-      />
+      <ClientHome initialLang={initialLang} isLyricPageInitial={true} />
     </>
   );
 }
