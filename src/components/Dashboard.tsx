@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { play } from "@/lib/spotify";
-import { encodeTrackUrl } from "@/lib/utils";
-import { usePlayerStore } from "@/store/usePlayerStore";
+import { encodeTrackUrl, spotifyWebUrl } from "@/lib/utils";
 import {
   User,
   Play,
@@ -63,7 +61,6 @@ export default function Dashboard({
 }: DashboardProps) {
   const { data: session } = useSession();
   const router = useRouter();
-  const deviceId = usePlayerStore((s) => s.deviceId);
 
   // Get UI text based on language
   const t =
@@ -104,13 +101,17 @@ export default function Dashboard({
     fetchData();
   }, [session, initialUiLanguage]);
 
-  const handlePlayContext = async (uri: string) => {
-    if (session?.accessToken) {
-      await play(session.accessToken as string, uri, deviceId);
-    } else {
-      alert("Please login to play music.");
-    }
+  /** 아티스트·플레이리스트는 가사가 없으므로 스포티파이에서 열어 줍니다. */
+  const openInSpotify = (uri: string) => {
+    const url = spotifyWebUrl(uri);
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  /** 인기곡 카드를 누르면 그 곡의 가사 화면으로 이동합니다. */
+  const openLyrics = (title: string, artist: string, id?: string) =>
+    router.push(
+      encodeTrackUrl(artist, title, id ? { id, source: "spotify" } : undefined)
+    );
 
   if (loading) {
     return (
@@ -176,7 +177,7 @@ export default function Dashboard({
             {topTracks.slice(0, 5).map((track) => (
               <div
                 key={track.id}
-                onClick={() => handlePlayContext(track.uri)}
+                onClick={() => openLyrics(track.title, track.artist, track.id)}
                 className="group bg-zinc-900/50 hover:bg-zinc-800 rounded-lg p-4 transition-all border border-white/5 hover:border-white/10 cursor-pointer"
               >
                 <div className="relative aspect-square mb-4 overflow-hidden rounded-md shadow-lg">
@@ -211,7 +212,7 @@ export default function Dashboard({
             {topArtists.slice(0, 5).map((artist) => (
               <div
                 key={artist.id}
-                onClick={() => handlePlayContext(artist.uri)}
+                onClick={() => openInSpotify(artist.uri)}
                 className="group bg-zinc-900/50 hover:bg-zinc-800 rounded-lg p-4 transition-all border border-white/5 hover:border-white/10 cursor-pointer"
               >
                 <div className="relative aspect-square mb-4 overflow-hidden rounded-full shadow-lg mx-auto w-32 h-32">
@@ -254,7 +255,7 @@ export default function Dashboard({
             {playlists.slice(0, 5).map((playlist) => (
               <div
                 key={playlist.id}
-                onClick={() => handlePlayContext(playlist.uri)}
+                onClick={() => openInSpotify(playlist.uri)}
                 className="group bg-zinc-900/50 hover:bg-zinc-800 rounded-lg p-4 transition-all border border-white/5 hover:border-white/10 cursor-pointer"
               >
                 <div className="relative aspect-square mb-4 overflow-hidden rounded-md shadow-lg">

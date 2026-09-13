@@ -20,6 +20,19 @@ export function staticTrackKey(artist: string, title: string): string {
   return `static-${artist}-${title}`.replace(/\s+/g, "-").toLowerCase();
 }
 
+/**
+ * 스포티파이 URI(spotify:artist:ID)를 웹 주소로 바꿉니다.
+ * 이 서비스는 재생을 제어하지 않으므로, 재생은 스포티파이에서 하도록 연결합니다.
+ * 휴대폰에서는 이 주소가 스포티파이 앱으로 열립니다.
+ */
+export function spotifyWebUrl(uri: string): string | null {
+  const parts = uri?.split(":");
+  if (!parts || parts.length < 3 || parts[0] !== "spotify") return null;
+  const [, kind, id] = parts;
+  if (!kind || !id) return null;
+  return `https://open.spotify.com/${kind}/${id}`;
+}
+
 /** externalTrackKey로 만든 키를 다시 서비스와 ID로 분해합니다. */
 export function parseTrackKey(key: string | null): TrackUrlRef | null {
   if (!key) return null;

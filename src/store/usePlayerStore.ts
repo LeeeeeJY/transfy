@@ -29,10 +29,6 @@ interface PlayerState {
   originalLyrics: LyricLine[]; // Store original lyrics to avoid re-fetching
   isPlayerVisible: boolean;
   isLyricsExpanded: boolean;
-  /** 이 브라우저의 웹 플레이어 기기 ID */
-  deviceId: string | null;
-  /** 스포티파이가 실제로 재생 중인 기기 ID (휴대폰 앱, 데스크톱 앱 등) */
-  activeDeviceId: string | null;
   showTranslation: boolean;
   
   // Settings & Environment
@@ -48,9 +44,6 @@ interface PlayerState {
    */
   pinnedTrackId: string | null;
   provider: "spotify" | "apple" | "none"; // For tracking source
-  isSdkReady: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  player: any | null; // Spotify Player instance
 
   // Flat properties for easier access (to match ClientHome usage)
   title: string;
@@ -68,8 +61,6 @@ interface PlayerState {
   setOriginalLyrics: (lyrics: LyricLine[]) => void;
   togglePlayerVisibility: (visible?: boolean) => void;
   toggleLyricsExpanded: (expanded?: boolean) => void;
-  setDeviceId: (id: string) => void;
-  setActiveDeviceId: (id: string | null) => void;
   reset: () => void;
   setShowTranslation: (show: boolean) => void;
   toggleTranslation: () => void;
@@ -83,9 +74,6 @@ interface PlayerState {
   setIsTranslating: (translating: boolean) => void;
   setPinnedTrackId: (trackId: string | null) => void;
   setProvider: (provider: "spotify" | "apple" | "none") => void;
-  setIsSdkReady: (isReady: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setPlayer: (player: any) => void;
   
   // Bulk update
   setPlayback: (state: Partial<PlayerState>) => void;
@@ -103,8 +91,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   originalLyrics: [],
   isPlayerVisible: false,
   isLyricsExpanded: false,
-  deviceId: null,
-  activeDeviceId: null,
   showTranslation: true,
 
   // Default values
@@ -115,8 +101,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isTranslating: false,
   pinnedTrackId: null,
   provider: 'none',
-  isSdkReady: false,
-  player: null,
 
   // Flat properties defaults
   title: '',
@@ -147,8 +131,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   toggleLyricsExpanded: (expanded) => set((state) => ({ 
     isLyricsExpanded: expanded !== undefined ? expanded : !state.isLyricsExpanded 
   })),
-  setDeviceId: (id) => set({ deviceId: id }),
-  setActiveDeviceId: (id) => set({ activeDeviceId: id }),
   reset: () => set({ 
     currentTrack: null, 
     isPlaying: false, 
@@ -163,8 +145,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     trackId: null,
     duration: 0,
     isTranslating: false,
-    pinnedTrackId: null,
-    activeDeviceId: null
+    pinnedTrackId: null
   }),
   setShowTranslation: (show) => set({ showTranslation: show }),
   toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
@@ -178,8 +159,6 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setIsTranslating: (translating) => set({ isTranslating: translating }),
   setPinnedTrackId: (trackId) => set({ pinnedTrackId: trackId }),
   setProvider: (provider) => set({ provider }),
-  setIsSdkReady: (isReady) => set({ isSdkReady: isReady }),
-  setPlayer: (player) => set({ player }),
   setPlayback: (state) => set((prev) => ({ ...prev, ...state })),
   setLyricsRetryTrigger: () => set((s) => ({ lyricsRetryTrigger: s.lyricsRetryTrigger + 1 })),
 }));

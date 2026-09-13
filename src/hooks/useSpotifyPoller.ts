@@ -71,7 +71,6 @@ export function useSpotifyPoller() {
       if (!data || !data.item) {
         // 사용자가 선택해 둔 곡이 있으면 그 곡 정보를 그대로 유지합니다.
         if (current.pinnedTrackId) return;
-        usePlayerStore.setState({ activeDeviceId: null });
         // Only clear if we were previously using Spotify or no provider
         if (current.provider === "spotify" || current.provider === "none") {
           setPlayback({ isPlaying: false, provider: "spotify" });
@@ -82,7 +81,6 @@ export function useSpotifyPoller() {
       const playingKey = externalTrackKey("spotify", data.item.id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const playingArtists: string[] = data.item.artists.map((a: any) => a.name);
-      const activeDeviceId: string | null = data.device?.id ?? null;
 
       if (current.pinnedTrackId) {
         if (holdRef.current?.pinnedTrackId !== current.pinnedTrackId) {
@@ -106,7 +104,6 @@ export function useSpotifyPoller() {
         if (!pinnedTrackStarted && !trackChangedSinceHold) {
           // 아직은 페이지를 열기 전부터 재생 중이던 곡입니다. 화면을 덮어쓰지 않습니다.
           holdRef.current.lastSeenKey = playingKey;
-          usePlayerStore.setState({ activeDeviceId });
           return;
         }
 
@@ -124,14 +121,6 @@ export function useSpotifyPoller() {
         ? data.progress_ms + Math.min(roundTripMs / 2, 1000)
         : data.progress_ms;
 
-      // 이 브라우저의 웹 플레이어가 실제 재생 기기일 때만 로컬 진행 위치를 우선합니다.
-      // (다른 기기에서 재생 중이라면 서버가 알려 준 위치가 정확합니다.)
-      const isLocalSdkPlaying =
-        current.provider === "spotify" &&
-        current.isPlaying &&
-        !!current.deviceId &&
-        activeDeviceId === current.deviceId;
-
       setPlayback({
         isPlaying: data.is_playing,
         trackId: playingKey,
@@ -139,10 +128,10 @@ export function useSpotifyPoller() {
         artist: playingArtists.join(", "),
         albumArt: data.item.album.images[0]?.url,
         duration: data.item.duration_ms / 1000, // Convert to seconds for store consistency
-        progressMs: isLocalSdkPlaying ? current.progressMs : measuredProgressMs,
-        progress: isLocalSdkPlaying ? current.progress : measuredProgressMs / 1000,
+        // 재생은 스포티파이 앱에서 이루어지므로, 서버가 알려 준 위치가 정확합니다.
+        progressMs: measuredProgressMs,
+        progress: measuredProgressMs / 1000,
         provider: "spotify",
-        activeDeviceId,
         isPlayerVisible: true, // Always show player when data is available
       });
     };

@@ -6,7 +6,6 @@ import {
   Search,
   Loader2,
   TrendingUp,
-  PlayCircle,
   FileText,
   X,
 } from "lucide-react";
@@ -15,9 +14,7 @@ import {
   getTopChartsAction,
   Track,
 } from "@/app/actions/search";
-import { usePlayerStore } from "@/store/usePlayerStore";
 import { useSession } from "next-auth/react";
-import { play } from "@/lib/spotify";
 import { encodeTrackUrl, type TrackSource } from "@/lib/utils";
 import { trackLyricsOpen, trackSearch } from "@/lib/analytics";
 
@@ -34,7 +31,6 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "최근 많이 들은 곡",
     noResults: "검색 결과가 없습니다.",
     showMore: "더보기",
-    playNoDevice: "재생할 기기가 없습니다. Spotify 앱에서 재생하거나, Premium이면 이 탭을 새로고침 후 다시 시도해 주세요.",
   },
   en: {
     placeholder: "Search for songs, artists...",
@@ -44,7 +40,6 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "Current Top Tracks",
     noResults: "No results found.",
     showMore: "Show more",
-    playNoDevice: "No active device. Play from the Spotify app, or refresh this tab if you have Premium.",
   },
   ja: {
     placeholder: "曲名、アーティストを検索...",
@@ -54,7 +49,6 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "最近よく聴く曲",
     noResults: "検索結果がありません。",
     showMore: "もっと見る",
-    playNoDevice: "再生できるデバイスがありません。Spotifyアプリで再生するか、Premiumの場合はこのタブを再読み込みしてください。",
   },
   zh: {
     placeholder: "搜索歌曲、艺术家...",
@@ -64,7 +58,6 @@ const SEARCH_UI_TEXT = {
     topChartsSpotify: "最近常听的歌曲",
     noResults: "未找到结果。",
     showMore: "查看更多",
-    playNoDevice: "没有可用的播放设备。请在 Spotify 应用中播放，或如为 Premium 用户请刷新本页面后重试。",
   },
 } as const;
 
@@ -82,7 +75,6 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const [loadingMoreResults, setLoadingMoreResults] = useState(false);
   const [loadingMoreCharts, setLoadingMoreCharts] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [playError, setPlayError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -91,8 +83,6 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const [chartsOffset, setChartsOffset] = useState(0);
   const [hasMoreResults, setHasMoreResults] = useState(true);
   const [hasMoreCharts, setHasMoreCharts] = useState(true);
-
-  const { setTrack, setIsPlaying, deviceId } = usePlayerStore();
 
   // Get UI text based on language
   const t =
@@ -241,11 +231,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
   const trackSourceOf = (track: Track): TrackSource =>
     track.uri?.startsWith("spotify:") ? "spotify" : "itunes";
 
-  const handleTrackClick = async (
-    track: Track,
-    origin: "search" | "charts"
-  ) => {
-    setPlayError(null);
+  const handleTrackClick = (track: Track, origin: "search" | "charts") => {
     // 트랙 ID를 함께 넘겨야 상세 페이지가 제목으로 다시 검색하지 않고
     // 사용자가 누른 바로 그 곡을 불러옵니다.
     const trackPath = encodeTrackUrl(track.artist, track.title, {
@@ -253,20 +239,8 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       source: trackSourceOf(track),
     });
     trackLyricsOpen(origin, initialLang);
-    if (session?.accessToken) {
-      const playOk = await play(session.accessToken, track.uri, deviceId);
-      setTrack(track);
-      if (playOk) setIsPlaying(true);
-      else {
-        setPlayError(t.playNoDevice);
-        setTimeout(() => setPlayError(null), 6000);
-      }
-      // 재생 실패 시 메시지를 잠깐 보여준 뒤 이동
-      if (playOk) router.push(trackPath);
-      else setTimeout(() => router.push(trackPath), 2200);
-    } else {
-      router.push(trackPath);
-    }
+    // 재생은 스포티파이 앱에 맡기고, 여기서는 가사 화면으로만 이동합니다.
+    router.push(trackPath);
   };
 
   return (
@@ -325,11 +299,6 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
           {error}
         </div>
       )}
-      {playError && (
-        <div className="text-center text-amber-400 text-sm bg-amber-500/10 py-2 rounded-lg border border-amber-500/20">
-          {playError}
-        </div>
-      )}
 
       {/* Search Results Grid */}
       {results.length > 0 && (
@@ -365,11 +334,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
 
               {/* Action Icon */}
               <div className="text-zinc-600 group-hover:text-green-500 transition-colors shrink-0">
-                {session ? (
-                  <PlayCircle className="w-8 h-8" />
-                ) : (
-                  <FileText className="w-8 h-8" />
-                )}
+                <FileText className="w-8 h-8" />
               </div>
             </div>
           ))}
@@ -443,11 +408,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
 
                     {/* Action Icon */}
                     <div className="text-zinc-600 group-hover:text-white transition-colors shrink-0">
-                      {session ? (
-                        <PlayCircle className="w-6 h-6" />
-                      ) : (
-                        <FileText className="w-6 h-6" />
-                      )}
+                      <FileText className="w-6 h-6" />
                     </div>
                   </div>
                 ))}
