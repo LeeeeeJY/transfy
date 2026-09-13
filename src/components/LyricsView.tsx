@@ -18,6 +18,8 @@ const UI_TEXT = {
     playMusic: "Spotify에서 음악을 재생하거나 검색해주세요.",
     translating: "번역 중...",
     readyToPlay: "음악을 재생할 준비가 되었습니다.",
+    nowPlaying: "재생 중 · 가사가 자동으로 따라갑니다",
+    notPlaying: "재생 중이 아닙니다 · 스포티파이에서 재생하면 가사가 따라갑니다",
   },
   en: {
     loading: "Loading lyrics...",
@@ -27,6 +29,8 @@ const UI_TEXT = {
     playMusic: "Please play music on Spotify or search.",
     translating: "Translating...",
     readyToPlay: "Ready to play music.",
+    nowPlaying: "Playing · lyrics follow automatically",
+    notPlaying: "Not playing · start playback on Spotify to sync",
   },
   ja: {
     loading: "歌詞を読み込み中...",
@@ -36,6 +40,8 @@ const UI_TEXT = {
     playMusic: "Spotifyで音楽を再生するか、検索してください。",
     translating: "翻訳中...",
     readyToPlay: "音楽を再生する準備ができました。",
+    nowPlaying: "再生中 · 歌詞が自動で追従します",
+    notPlaying: "再生していません · Spotifyで再生すると同期します",
   },
   zh: {
     loading: "正在加载歌词...",
@@ -45,6 +51,8 @@ const UI_TEXT = {
     playMusic: "请在 Spotify 上播放音乐或搜索。",
     translating: "翻译中...",
     readyToPlay: "准备播放音乐。",
+    nowPlaying: "播放中 · 歌词自动跟随",
+    notPlaying: "未在播放 · 在 Spotify 上播放即可同步",
   },
 };
 
@@ -57,6 +65,7 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   const {
     lyrics,
     progressMs,
+    isPlaying,
     isLoadingLyrics,
     showTranslation,
     isTranslating,
@@ -389,6 +398,21 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
               </div>
             </div>
           )}
+
+          {/* 재생 중인지 알려 주어, 가사가 스크롤되지 않는 이유를 알 수 있게 합니다. */}
+          <div className="flex justify-center">
+            {isPlaying ? (
+              <span className="inline-flex items-center gap-2 text-sm text-[#1DB954]">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1DB954] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#1DB954]" />
+                </span>
+                {t.nowPlaying}
+              </span>
+            ) : (
+              <span className="text-sm text-zinc-500">{t.notPlaying}</span>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-32">

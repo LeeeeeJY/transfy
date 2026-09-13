@@ -28,8 +28,20 @@ export default function BottomPlayer() {
     isSdkReady,
     player,
     deviceId,
+    activeDeviceId,
     pinnedTrackId
   } = usePlayerStore();
+
+  /**
+   * 이 브라우저의 웹 플레이어가 실제 재생 기기일 때만 SDK로 제어합니다.
+   *
+   * 휴대폰이나 데스크톱 앱에서 재생 중인데 SDK를 쓰면, 아무것도 재생하지 않는
+   * 웹 플레이어를 조작하게 되어 버튼을 눌러도 아무 일도 일어나지 않습니다.
+   * 그런 경우에는 Web API로 실제 재생 기기를 제어해야 합니다.
+   */
+  const controlsLocalPlayer = Boolean(
+    isSdkReady && player && deviceId && activeDeviceId === deviceId
+  );
 
   // 스포티파이 제어가 실패했을 때 사용자에게 알리기 위한 메시지
   const [controlError, setControlError] = useState<string | null>(null);
@@ -45,7 +57,7 @@ export default function BottomPlayer() {
   const togglePlay = async () => {
     if (!session?.accessToken) return;
 
-    if (isSdkReady && player) {
+    if (controlsLocalPlayer) {
       await player.togglePlay();
     } else {
       if (isPlaying) {
@@ -72,7 +84,7 @@ export default function BottomPlayer() {
   };
 
   const nextTrack = async () => {
-    if (isSdkReady && player) {
+    if (controlsLocalPlayer) {
       await player.nextTrack();
     } else if (session?.accessToken) {
       if (!(await next(session.accessToken))) showControlError();
@@ -80,7 +92,7 @@ export default function BottomPlayer() {
   };
 
   const previousTrack = async () => {
-    if (isSdkReady && player) {
+    if (controlsLocalPlayer) {
       await player.previousTrack();
     } else if (session?.accessToken) {
       if (!(await previous(session.accessToken))) showControlError();

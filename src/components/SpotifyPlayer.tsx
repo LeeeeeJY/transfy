@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePlayerStore } from '@/store/usePlayerStore';
-import { transferPlayback } from '@/lib/spotify';
 import { externalTrackKey } from '@/lib/utils';
 
 declare global {
@@ -53,8 +52,10 @@ export default function SpotifyPlayer() {
         setDeviceId(device_id);
         setIsSdkReady(true);
         setPlayer(player);
-        // Auto-transfer playback to this device
-        transferPlayback(session.accessToken as string, device_id);
+        // 여기서 재생을 이 기기로 옮기지 않습니다. 휴대폰이나 데스크톱 앱에서
+        // 듣고 있는데 웹 페이지를 열었다는 이유만으로 재생을 빼앗으면 안 됩니다.
+        // 웹에서 직접 재생을 시작할 때는 lib/spotify.ts의 play()가 필요한 경우에만
+        // 이 기기로 전환합니다.
       });
 
       player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
@@ -79,7 +80,16 @@ export default function SpotifyPlayer() {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       player.addListener('player_state_changed', (state: any) => {
-        if (!state) return;
+        if (!state) {
+          // 재생이 다른 기기로 넘어가면 SDK는 상태를 알려 주지 않습니다.
+          // 이 기기가 더 이상 재생 기기가 아니라고 표시해, 폴러가 실제 재생 중인
+          // 기기의 상태를 따라가도록 합니다.
+          const { deviceId, activeDeviceId } = usePlayerStore.getState();
+          if (activeDeviceId && deviceId && activeDeviceId === deviceId) {
+            usePlayerStore.setState({ activeDeviceId: null });
+          }
+          return;
+        }
 
         const currentTrack = state.track_window.current_track;
         const playingKey = externalTrackKey('spotify', currentTrack.id);
@@ -91,6 +101,7 @@ export default function SpotifyPlayer() {
         setPlayback({
           isPlaying: !state.paused,
           trackId: playingKey,
+          activeDeviceId: usePlayerStore.getState().deviceId,
           title: currentTrack.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           artist: currentTrack.artists.map((a: any) => a.name).join(', '),

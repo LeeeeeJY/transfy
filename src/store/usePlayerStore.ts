@@ -29,7 +29,10 @@ interface PlayerState {
   originalLyrics: LyricLine[]; // Store original lyrics to avoid re-fetching
   isPlayerVisible: boolean;
   isLyricsExpanded: boolean;
+  /** 이 브라우저의 웹 플레이어 기기 ID */
   deviceId: string | null;
+  /** 스포티파이가 실제로 재생 중인 기기 ID (휴대폰 앱, 데스크톱 앱 등) */
+  activeDeviceId: string | null;
   showTranslation: boolean;
   
   // Settings & Environment
@@ -66,6 +69,7 @@ interface PlayerState {
   togglePlayerVisibility: (visible?: boolean) => void;
   toggleLyricsExpanded: (expanded?: boolean) => void;
   setDeviceId: (id: string) => void;
+  setActiveDeviceId: (id: string | null) => void;
   reset: () => void;
   setShowTranslation: (show: boolean) => void;
   toggleTranslation: () => void;
@@ -100,6 +104,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isPlayerVisible: false,
   isLyricsExpanded: false,
   deviceId: null,
+  activeDeviceId: null,
   showTranslation: true,
 
   // Default values
@@ -143,6 +148,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     isLyricsExpanded: expanded !== undefined ? expanded : !state.isLyricsExpanded 
   })),
   setDeviceId: (id) => set({ deviceId: id }),
+  setActiveDeviceId: (id) => set({ activeDeviceId: id }),
   reset: () => set({ 
     currentTrack: null, 
     isPlaying: false, 
@@ -157,7 +163,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     trackId: null,
     duration: 0,
     isTranslating: false,
-    pinnedTrackId: null
+    pinnedTrackId: null,
+    activeDeviceId: null
   }),
   setShowTranslation: (show) => set({ showTranslation: show }),
   toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
