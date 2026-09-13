@@ -13,3 +13,11 @@ export const SITE_URL = (
 export function absoluteUrl(path: string): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * 서비스 문의와 오류 제보를 받는 주소.
+ *
+ * 이용약관과 개인정보처리방침이 이 값을 함께 사용하므로, 주소가 바뀌면
+ * 이곳만 고치면 됩니다.
+ */
+export const CONTACT_EMAIL = "ulrich.leee@outlook.com";

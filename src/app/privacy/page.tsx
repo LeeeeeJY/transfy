@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getLanguageFromHeaders } from '@/lib/server-utils';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const PRIVACY_TEXT = {
   ko: {
@@ -20,6 +21,8 @@ const PRIVACY_TEXT = {
       "서비스 사용량 모니터링",
       "기술적 문제 감지, 예방 및 해결"
     ],
+    contactTitle: "3. 문의와 오류 제보",
+    contactDesc: "개인정보 처리에 관해 궁금한 점이 있으시거나, 서비스를 이용하시다가 이상한 점을 발견하셨다면 아래 주소로 알려 주세요. 보내 주신 내용은 확인 후 처리하며, 문의를 처리하는 목적 외에는 사용하지 않습니다.",
     back: "← 홈으로 돌아가기",
   },
   en: {
@@ -39,6 +42,8 @@ const PRIVACY_TEXT = {
       "Monitor the usage of our Service.",
       "Detect, prevent and address technical issues."
     ],
+    contactTitle: "3. Contact and Bug Reports",
+    contactDesc: "If you have any question about how your data is handled, or if you notice anything odd while using Transfy, please let us know at the address below. We use what you send only to respond to your message.",
     back: "← Back to Home",
   },
 };
@@ -77,6 +82,17 @@ export default async function PrivacyPage() {
               <li key={i}>{item}</li>
             ))}
           </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">{t.contactTitle}</h2>
+          <p className="text-zinc-400">{t.contactDesc}</p>
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="inline-block text-blue-400 hover:underline"
+          >
+            {CONTACT_EMAIL}
+          </a>
         </section>
 
         <div className="pt-8 border-t border-zinc-800">

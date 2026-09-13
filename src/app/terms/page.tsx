@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getLanguageFromHeaders } from '@/lib/server-utils';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const TERMS_TEXT = {
   ko: {
@@ -11,6 +12,8 @@ const TERMS_TEXT = {
     licenseDesc: "개인적, 비상업적 일시적 열람만을 목적으로 Transfy의 자료(정보 또는 소프트웨어) 사본 1부를 일시적으로 다운로드할 수 있는 권한이 부여됩니다.",
     disclaimerTitle: "3. 면책 조항",
     disclaimerDesc: "Transfy 웹사이트의 자료는 '있는 그대로' 제공됩니다. Transfy는 명시적이든 묵시적이든 어떠한 보증도 하지 않으며, 이에 따라 상품성, 특정 목적에의 적합성, 지식재산권 비침해 또는 기타 권리 침해에 대한 묵시적 보증 또는 조건을 포함하되 이에 국한되지 않는 모든 다른 보증을 부인하고 무효화합니다.",
+    contactTitle: "4. 문의와 오류 제보",
+    contactDesc: "서비스를 이용하시다가 가사가 어긋나거나 번역이 이상하게 나오는 등 잘못된 점을 발견하셨다면, 아래 주소로 알려 주세요. 어떤 곡에서 어떤 문제가 있었는지 함께 적어 주시면 확인한 뒤에 고치겠습니다.",
     back: "← 홈으로 돌아가기",
   },
   en: {
@@ -21,6 +24,8 @@ const TERMS_TEXT = {
     licenseDesc: "Permission is granted to temporarily use Transfy for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title.",
     disclaimerTitle: "3. Disclaimer",
     disclaimerDesc: "The materials on Transfy's website are provided on an 'as is' basis. Transfy makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+    contactTitle: "4. Contact and Bug Reports",
+    contactDesc: "If you notice anything wrong while using Transfy, such as mismatched lyrics or a strange translation, please let us know at the address below. Telling us which track was affected and what went wrong helps us look into it and fix it.",
     back: "← Back to Home",
   },
   // Add other languages as needed (fallback to en)
@@ -55,6 +60,17 @@ export default async function TermsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">{t.disclaimerTitle}</h2>
           <p className="text-zinc-400">{t.disclaimerDesc}</p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">{t.contactTitle}</h2>
+          <p className="text-zinc-400">{t.contactDesc}</p>
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="inline-block text-blue-400 hover:underline"
+          >
+            {CONTACT_EMAIL}
+          </a>
         </section>
 
         <div className="pt-8 border-t border-zinc-800">
