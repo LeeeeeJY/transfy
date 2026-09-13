@@ -1,26 +1,8 @@
 import React from 'react';
-import Link from 'next/link';
-import { getLanguageFromHeaders } from '@/lib/server-utils';
-import { CONTACT_EMAIL } from '@/lib/site';
+import PolicyDocument, { type PolicyCopy } from '@/components/PolicyDocument';
+import { getLanguageFromHeaders, type UiLanguage } from '@/lib/server-utils';
 
-interface PolicySection {
-  title: string;
-  body: string;
-  /** 본문 뒤에 목록으로 덧붙일 항목 */
-  list?: string[];
-}
-
-interface TermsCopy {
-  title: string;
-  updated: string;
-  intro: string;
-  sections: PolicySection[];
-  contactTitle: string;
-  contactDesc: string;
-  back: string;
-}
-
-const TERMS_TEXT: Record<'ko' | 'en', TermsCopy> = {
+const TERMS_TEXT: Record<UiLanguage, PolicyCopy> = {
   ko: {
     title: "이용약관",
     updated: "최종 수정일: 2026년 9월 13일",
@@ -111,58 +93,100 @@ const TERMS_TEXT: Record<'ko' | 'en', TermsCopy> = {
       "If you notice anything wrong while using Transfy, such as mismatched lyrics or a strange translation, please let us know at the address below. Telling us which track was affected and what went wrong helps us look into it and fix it. Takedown requests go to the same address.",
     back: "← Back to Home",
   },
+  ja: {
+    title: "利用規約",
+    updated: "最終更新日: 2026年9月13日",
+    intro:
+      "Transfyは、Spotifyで再生中の曲の歌詞を取得し、リアルタイムで翻訳して表示するサービスです。個人が学習を目的として制作し、無料で運営している非営利プロジェクトであり、本サービスをご利用いただいた時点で以下の内容に同意したものとみなします。",
+    sections: [
+      {
+        title: "1. ご利用の範囲",
+        body: "個人的な鑑賞を目的として、どなたでも無料でご利用いただけます。ただし、次の行為はお控えください。",
+        list: [
+          "自動化された手段で大量のリクエストを送信し、サービスの運営を妨げる行為",
+          "本サービスが表示する歌詞や翻訳を商業目的で再配布する行為",
+          "本サービスや連携する外部サービスが正常に動作しないよう迂回し、または妨害する行為",
+        ],
+      },
+      {
+        title: "2. 歌詞と著作権",
+        body: "歌詞の原文はLRCLIBから提供を受けており、歌詞と音源に関するすべての権利は原著作者および権利者に帰属します。Transfyは歌詞を自ら保有したり販売したりすることはなく、利用者が聴いている曲に合わせて表示するだけです。権利者の方から特定の曲の掲載停止をご要望いただいた場合は、確認のうえ対応いたします。",
+      },
+      {
+        title: "3. 翻訳の正確さ",
+        body: "翻訳文は機械翻訳によって自動生成されるため、原文の意味と異なって訳される場合があります。特に慣用表現や比喩の多い歌詞では正確さが落ちます。翻訳文を学習や引用の根拠とされる際は、必ず原文もあわせてご確認ください。",
+      },
+      {
+        title: "4. 外部サービスとの関係",
+        body: "Transfyは、Spotify AB、Apple Inc.、LRCLIBをはじめとするいかなる外部サービスとも提携しておらず、後援も受けていません。各サービスの名称および商標はそれぞれの権利者に帰属し、Spotifyアカウントでのログイン機能はSpotifyが公開しているAPIを通じて提供されています。",
+      },
+      {
+        title: "5. サービスの変更と停止",
+        body: "個人が運営するプロジェクトのため、サービスの内容が変更されたり、事前のお知らせなく一時的または恒久的に停止したりする場合があります。連携する外部サービスの方針変更や障害により、歌詞の取得と翻訳が動作しないこともあります。",
+      },
+      {
+        title: "6. 免責事項",
+        body: "Transfyは現状のまま提供され、特定の目的に適合すること、または誤りがないことを保証するものではありません。法律が認める範囲において、本サービスのご利用によって生じた損害について責任を負いません。",
+      },
+      {
+        title: "7. 規約の変更",
+        body: "規約を変更した場合は、変更後の内容と最終更新日をこの画面に反映します。変更後も引き続きご利用いただいた場合は、変更後の規約に同意したものとみなします。",
+      },
+    ],
+    contactTitle: "8. お問い合わせと不具合のご報告",
+    contactDesc:
+      "ご利用中に歌詞がずれている、翻訳がおかしいなど、誤りにお気づきの際は下記の宛先までお知らせください。どの曲でどのような問題が起きたかを添えていただけますと、確認のうえ修正いたします。掲載停止のご要望も同じ宛先で承ります。",
+    back: "← ホームに戻る",
+  },
+  zh: {
+    title: "服务条款",
+    updated: "最后更新日期：2026年9月13日",
+    intro:
+      "Transfy 会获取您在 Spotify 上正在播放的歌曲歌词，并实时翻译后显示。这是个人出于学习目的制作、免费运营的非商业项目，您使用本服务即视为同意以下内容。",
+    sections: [
+      {
+        title: "1. 使用范围",
+        body: "任何人都可以出于个人欣赏的目的免费使用。但请不要进行以下行为：",
+        list: [
+          "通过自动化手段发送大量请求，妨碍服务的运行",
+          "将本服务显示的歌词和译文用于商业目的再分发",
+          "绕过或妨碍本服务及其所连接的外部服务的正常运行",
+        ],
+      },
+      {
+        title: "2. 歌词与著作权",
+        body: "歌词原文由 LRCLIB 提供，歌词和录音的一切权利归原作者及权利人所有。Transfy 既不持有也不出售歌词，只是配合您正在收听的歌曲将其显示出来。如果权利人要求下架某首歌曲，我们会在核实后处理。",
+      },
+      {
+        title: "3. 译文的准确性",
+        body: "译文由机器翻译自动生成，可能与原文的意思有出入，惯用语和比喻较多的歌词尤其如此。将译文用作学习或引用依据时，请务必同时对照原文。",
+      },
+      {
+        title: "4. 与外部服务的关系",
+        body: "Transfy 与 Spotify AB、Apple Inc.、LRCLIB 等任何外部服务均无合作或赞助关系。各服务的名称与商标归各自权利人所有，使用 Spotify 账户登录的功能通过 Spotify 公开的 API 提供。",
+      },
+      {
+        title: "5. 服务的变更与中断",
+        body: "本项目由个人运营，服务内容可能发生变更，也可能在未事先通知的情况下暂时或永久停止。所连接的外部服务调整政策或发生故障时，歌词获取与翻译也可能无法运行。",
+      },
+      {
+        title: "6. 免责声明",
+        body: "Transfy 按现状提供，不保证适合特定用途，也不保证没有错误。在法律允许的范围内，我们不对您使用本服务过程中产生的损害承担责任。",
+      },
+      {
+        title: "7. 条款的变更",
+        body: "条款变更时，我们会将变更后的内容和最后更新日期一并反映在本页面。变更后继续使用本服务，即视为您同意变更后的条款。",
+      },
+    ],
+    contactTitle: "8. 联系与问题反馈",
+    contactDesc:
+      "使用过程中如果发现歌词不同步、翻译异常等问题，请通过下面的邮箱告诉我们。附上是哪首歌、出现了什么问题，我们会核实后修正。下架请求也请发送到同一邮箱。",
+    back: "← 返回首页",
+  },
 };
 
 export default async function TermsPage() {
   const lang = await getLanguageFromHeaders();
-  const t = TERMS_TEXT[lang === 'ko' ? 'ko' : 'en'];
 
-  return (
-    <div className="min-h-screen bg-black text-white p-8 md:p-16">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="flex justify-center mb-4">
-          <Link href="/" className="hover:opacity-80 transition-opacity">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Transfy Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
-          </Link>
-        </div>
-
-        <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-bold">{t.title}</h1>
-          <p className="text-sm text-zinc-500">{t.updated}</p>
-        </div>
-
-        <p className="text-zinc-400">{t.intro}</p>
-
-        {t.sections.map((section) => (
-          <section key={section.title} className="space-y-4">
-            <h2 className="text-2xl font-semibold">{section.title}</h2>
-            <p className="text-zinc-400">{section.body}</p>
-            {section.list && (
-              <ul className="list-disc space-y-1.5 pl-5 text-zinc-400 marker:text-zinc-600">
-                {section.list.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ))}
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t.contactTitle}</h2>
-          <p className="text-zinc-400">{t.contactDesc}</p>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="inline-block text-blue-400 hover:underline"
-          >
-            {CONTACT_EMAIL}
-          </a>
-        </section>
-
-        <div className="pt-8 border-t border-zinc-800">
-          <Link href="/" className="text-blue-400 hover:underline">{t.back}</Link>
-        </div>
-      </div>
-    </div>
-  );
+  return <PolicyDocument copy={TERMS_TEXT[lang]} />;
 }

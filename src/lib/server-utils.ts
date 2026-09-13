@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
 
-export async function getLanguageFromHeaders(): Promise<"ko" | "en" | "ja" | "zh"> {
+/** 화면에 쓰는 언어 코드 */
+export type UiLanguage = "ko" | "en" | "ja" | "zh";
+
+export async function getLanguageFromHeaders(): Promise<UiLanguage> {
   const headersList = await headers();
   const acceptLanguage = headersList.get("accept-language");
 
