@@ -66,6 +66,7 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
     lyrics,
     progressMs,
     isPlaying,
+    provider,
     isLoadingLyrics,
     showTranslation,
     isTranslating,
@@ -108,22 +109,29 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
 
   const urlTrackId = getTrackIdFromUrl();
 
+  /**
+   * 실제 재생을 따라가는 중인지 여부.
+   * 이때는 스토어의 곡 정보가 정답이므로 URL과 비교하면 안 됩니다.
+   */
+  const isFollowingPlayback = provider === "spotify";
+
   // Check mismatch immediately for rendering.
-  // 사용자가 검색 결과에서 직접 선택한 곡(pinnedTrackId)이 있으면 서버가 확정한
-  // 곡 정보가 정답이므로, URL에서 유추한 ID와 비교하지 않습니다.
+  //
+  // 다음 두 경우에는 URL에서 유추한 ID와 비교하지 않습니다.
+  //  - 사용자가 검색 결과에서 직접 선택한 곡이 있는 경우(pinnedTrackId): 서버가 확정한 정보가 정답입니다.
+  //  - 실제 재생을 따라가는 중인 경우: 사용자가 스포티파이에서 곡을 넘기면 스토어의 곡이
+  //    URL과 달라지는 것이 정상입니다. 이때도 불일치로 보면 showLoading이 계속 참이 되어
+  //    가사 화면이 "불러오는 중"에서 영영 빠져나오지 못합니다.
   const isIdMismatch =
-    !pinnedTrackId && urlTrackId && storeTrackId && urlTrackId !== storeTrackId;
+    !pinnedTrackId &&
+    !isFollowingPlayback &&
+    urlTrackId &&
+    storeTrackId &&
+    urlTrackId !== storeTrackId;
 
   // Check if URL trackId matches store trackId and clear lyrics if mismatch
   useEffect(() => {
-    // Always clear lyrics when component mounts to prevent showing previous lyrics
-    // But only if we are navigating to a new track
-    
-    // If we are using Spotify provider, we should trust the store's trackId and ignore URL mismatch
-    // because URL might be static (from search) but playback is real.
-    const isSpotifyProvider = usePlayerStore.getState().provider === 'spotify';
-    
-    if (isIdMismatch && !isSpotifyProvider) {
+    if (isIdMismatch) {
       console.log("Clearing lyrics on mount/change due to ID mismatch");
       setStoreLyrics([]);
       setLoadingLyrics(true); // Start loading
