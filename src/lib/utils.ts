@@ -33,6 +33,25 @@ export function spotifyWebUrl(uri: string): string | null {
   return `https://open.spotify.com/${kind}/${id}`;
 }
 
+/**
+ * 이 곡을 스포티파이에서 열 수 있는 주소를 만듭니다.
+ *
+ * 스포티파이에서 온 곡은 그 곡으로 바로 연결하고, 아이튠즈 검색 결과처럼
+ * 스포티파이 ID를 모르는 곡은 검색 결과로 연결합니다. 휴대폰에서는 앱으로 열립니다.
+ */
+export function spotifyOpenUrl(
+  trackId: string | null,
+  title: string,
+  artist: string
+): string {
+  const ref = parseTrackKey(trackId);
+  if (ref?.source === "spotify" && ref.id) {
+    return `https://open.spotify.com/track/${ref.id}`;
+  }
+  const query = [title, artist].filter(Boolean).join(" ");
+  return `https://open.spotify.com/search/${encodeURIComponent(query)}`;
+}
+
 /** externalTrackKey로 만든 키를 다시 서비스와 ID로 분해합니다. */
 export function parseTrackKey(key: string | null): TrackUrlRef | null {
   if (!key) return null;

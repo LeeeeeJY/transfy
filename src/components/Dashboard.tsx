@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { encodeTrackUrl, spotifyWebUrl } from "@/lib/utils";
+import { usePlayerStore } from "@/store/usePlayerStore";
+import { encodeTrackUrl, parseTrackKey, spotifyWebUrl } from "@/lib/utils";
 import {
   User,
   Play,
@@ -11,6 +12,8 @@ import {
   History,
   TrendingUp,
   ListMusic,
+  Search,
+  FileText,
 } from "lucide-react";
 import {
   getRecentlyPlayedAction,
@@ -28,6 +31,8 @@ const DASHBOARD_UI_TEXT = {
     topArtists: "가장 많이 들은 아티스트",
     savedAlbums: "저장한 앨범",
     playlists: "내 플레이리스트",
+    search: "검색하기",
+    nowPlayingLyrics: "재생 중인 곡 가사 보기",
   },
   en: {
     recentlyPlayed: "Recently Played",
@@ -35,6 +40,8 @@ const DASHBOARD_UI_TEXT = {
     topArtists: "Your Top Artists",
     savedAlbums: "Saved Albums",
     playlists: "Your Playlists",
+    search: "Search",
+    nowPlayingLyrics: "Lyrics for what's playing",
   },
   ja: {
     recentlyPlayed: "最近再生した曲",
@@ -42,6 +49,8 @@ const DASHBOARD_UI_TEXT = {
     topArtists: "あなたのトップアーティスト",
     savedAlbums: "保存したアルバム",
     playlists: "あなたのプレイリスト",
+    search: "検索する",
+    nowPlayingLyrics: "再生中の曲の歌詞を見る",
   },
   zh: {
     recentlyPlayed: "最近播放的歌曲",
@@ -49,6 +58,8 @@ const DASHBOARD_UI_TEXT = {
     topArtists: "您的热门艺术家",
     savedAlbums: "保存的专辑",
     playlists: "您的播放列表",
+    search: "搜索歌曲",
+    nowPlayingLyrics: "查看正在播放的歌词",
   },
 } as const;
 
@@ -61,6 +72,11 @@ export default function Dashboard({
 }: DashboardProps) {
   const { data: session } = useSession();
   const router = useRouter();
+
+  // 지금 재생 중인 곡. 폴러가 스토어에 채워 주므로 여기서 따로 조회하지 않습니다.
+  const nowPlayingTitle = usePlayerStore((s) => s.title);
+  const nowPlayingArtist = usePlayerStore((s) => s.artist);
+  const nowPlayingTrackId = usePlayerStore((s) => s.trackId);
 
   // Get UI text based on language
   const t =
@@ -113,16 +129,60 @@ export default function Dashboard({
       encodeTrackUrl(artist, title, id ? { id, source: "spotify" } : undefined)
     );
 
+  /**
+   * 화면 맨 위의 바로 가기 버튼입니다.
+   *
+   * 검색은 헤더에도 있지만, 처음 들어온 사용자가 무엇을 할 수 있는지
+   * 한눈에 알 수 있도록 본문에도 함께 둡니다.
+   */
+  const quickActions = (
+    <div className="flex flex-wrap items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={() => router.push("/search")}
+        className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 cursor-pointer"
+      >
+        <Search className="w-4 h-4 text-zinc-400" />
+        {t.search}
+      </button>
+      {/* 재생 중인 곡이 있을 때만 가사 화면으로 보내 줍니다. */}
+      {nowPlayingTitle && (
+        <button
+          type="button"
+          onClick={() =>
+            router.push(
+              // 트랙 ID를 함께 넘겨야 제목이 비슷한 다른 곡이 열리지 않습니다.
+              encodeTrackUrl(
+                nowPlayingArtist,
+                nowPlayingTitle,
+                parseTrackKey(nowPlayingTrackId) ?? undefined
+              )
+            )
+          }
+          className="inline-flex items-center gap-2 rounded-full bg-[#1DB954] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#1ed760] cursor-pointer"
+        >
+          <FileText className="w-4 h-4" />
+          {t.nowPlayingLyrics}
+        </button>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+      <div className="w-full max-w-6xl mx-auto px-6 py-12 space-y-12">
+        {quickActions}
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto px-6 py-12 space-y-12 animate-in fade-in duration-500">
+      {quickActions}
+
       {/* 1. Recently Played (Only if logged in) */}
       {session && recentTracks.length > 0 && (
         <section>

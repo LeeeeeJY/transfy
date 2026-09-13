@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { usePathname } from "next/navigation";
 import { POPULAR_SONGS } from "@/data/dummySongs";
 import { useSession } from "next-auth/react";
-import { Loader2, Music } from "lucide-react";
+import { ExternalLink, Loader2, Music } from "lucide-react";
+import { spotifyOpenUrl } from "@/lib/utils";
 import Dashboard from "@/components/Dashboard";
 
 // UI Text Dictionary
@@ -20,6 +21,7 @@ const UI_TEXT = {
     readyToPlay: "음악을 재생할 준비가 되었습니다.",
     nowPlaying: "재생 중 · 가사가 자동으로 따라갑니다",
     notPlaying: "재생 중이 아닙니다 · 스포티파이에서 재생하면 가사가 따라갑니다",
+    openInSpotify: "스포티파이에서 열기",
   },
   en: {
     loading: "Loading lyrics...",
@@ -31,6 +33,7 @@ const UI_TEXT = {
     readyToPlay: "Ready to play music.",
     nowPlaying: "Playing · lyrics follow automatically",
     notPlaying: "Not playing · start playback on Spotify to sync",
+    openInSpotify: "Open in Spotify",
   },
   ja: {
     loading: "歌詞を読み込み中...",
@@ -42,6 +45,7 @@ const UI_TEXT = {
     readyToPlay: "音楽を再生する準備ができました。",
     nowPlaying: "再生中 · 歌詞が自動で追従します",
     notPlaying: "再生していません · Spotifyで再生すると同期します",
+    openInSpotify: "Spotifyで開く",
   },
   zh: {
     loading: "正在加载歌词...",
@@ -53,8 +57,56 @@ const UI_TEXT = {
     readyToPlay: "准备播放音乐。",
     nowPlaying: "播放中 · 歌词自动跟随",
     notPlaying: "未在播放 · 在 Spotify 上播放即可同步",
+    openInSpotify: "在 Spotify 中打开",
   },
 };
+
+/** 진행 위치에 해당하는 가사 줄의 번호를 찾습니다. 없으면 -1입니다. */
+function findActiveLineIndex(lyrics: { time: number }[], progressMs: number): number {
+  return lyrics.findIndex((line, i) => {
+    const nextLine = lyrics[i + 1];
+    return progressMs >= line.time && (!nextLine || progressMs < nextLine.time);
+  });
+}
+
+/** 사용자가 직접 스크롤한 뒤 자동 스크롤을 멈춰 두는 시간 */
+const MANUAL_SCROLL_PAUSE_MS = 4000;
+/** 활성 줄이 이 범위 안에 보이면 자동 스크롤을 하지 않습니다 (화면 높이 비율) */
+const COMFORT_ZONE_TOP = 0.2;
+const COMFORT_ZONE_BOTTOM = 0.75;
+
+/**
+ * 이 곡을 스포티파이에서 바로 여는 버튼입니다.
+ *
+ * 이 서비스는 재생을 제어하지 않으므로 재생은 스포티파이에 맡깁니다.
+ * 휴대폰에서는 이 주소가 스포티파이 앱으로 열립니다.
+ */
+function OpenInSpotifyButton({
+  trackId,
+  title,
+  artist,
+  label,
+}: {
+  trackId: string | null;
+  title: string;
+  artist: string;
+  label: string;
+}) {
+  // 곡 정보가 하나도 없으면 검색 주소조차 만들 수 없으므로 버튼을 숨깁니다.
+  if (!title && !artist) return null;
+
+  return (
+    <a
+      href={spotifyOpenUrl(trackId, title, artist)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 rounded-full bg-[#1DB954] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#1ed760]"
+    >
+      <ExternalLink className="w-4 h-4" />
+      {label}
+    </a>
+  );
+}
 
 interface LyricsViewProps {
   initialUiLanguage?: string;
@@ -62,24 +114,27 @@ interface LyricsViewProps {
 
 export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   const { data: session } = useSession();
-  const {
-    lyrics,
-    progressMs,
-    isPlaying,
-    provider,
-    isLoadingLyrics,
-    showTranslation,
-    isTranslating,
-    setLyrics,
-    setLoadingLyrics,
-    setOriginalLyrics,
-    setLyricsRetryTrigger,
-    uiLanguage,
-    pinnedTrackId,
-    trackId: storeTrackId,
-    setLyrics: setStoreLyrics,
-    setPlayback: setStorePlayback
-  } = usePlayerStore();
+  // 스토어 전체를 구독하면 진행 위치가 바뀔 때마다(초당 10회) 가사 목록 전체를
+  // 다시 그리게 되어 스크롤이 끊깁니다. 필요한 값만 따로 구독합니다.
+  const lyrics = usePlayerStore((s) => s.lyrics);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const provider = usePlayerStore((s) => s.provider);
+  const isLoadingLyrics = usePlayerStore((s) => s.isLoadingLyrics);
+  const showTranslation = usePlayerStore((s) => s.showTranslation);
+  const isTranslating = usePlayerStore((s) => s.isTranslating);
+  const uiLanguage = usePlayerStore((s) => s.uiLanguage);
+  const pinnedTrackId = usePlayerStore((s) => s.pinnedTrackId);
+  const storeTrackId = usePlayerStore((s) => s.trackId);
+
+  // 활성 줄 번호만 구독하므로, 줄이 실제로 바뀔 때만 다시 그립니다.
+  const activeIndex = usePlayerStore((s) => findActiveLineIndex(s.lyrics, s.progressMs));
+
+  const setLyrics = usePlayerStore((s) => s.setLyrics);
+  const setLoadingLyrics = usePlayerStore((s) => s.setLoadingLyrics);
+  const setOriginalLyrics = usePlayerStore((s) => s.setOriginalLyrics);
+  const setLyricsRetryTrigger = usePlayerStore((s) => s.setLyricsRetryTrigger);
+  const setStoreLyrics = setLyrics;
+  const setStorePlayback = usePlayerStore((s) => s.setPlayback);
 
   const pathname = usePathname();
 
@@ -161,27 +216,43 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   // 가사 조회와 번역은 useLyricsFetcher(ClientHome에서 실행)가 담당합니다.
   // 여기서 다시 번역하면 같은 곡을 두 번 번역하게 되므로 호출하지 않습니다.
 
-  // Find active line efficiently
-  const activeIndex = useMemo(() => {
-    return lyrics.findIndex((line, i) => {
-      const nextLine = lyrics[i + 1];
-      return (
-        progressMs >= line.time && (!nextLine || progressMs < nextLine.time)
-      );
-    });
-  }, [progressMs, lyrics]);
-
   /** 진행 위치에 해당하는 줄이 있는지 여부 */
   const hasActiveLine = activeIndex >= 0;
 
+  // 사용자가 직접 스크롤한 시각. 그 직후에는 자동 스크롤이 끼어들지 않게 합니다.
+  const lastManualScrollAt = useRef(0);
+
+  useEffect(() => {
+    const markManual = () => {
+      lastManualScrollAt.current = Date.now();
+    };
+    // 스크롤 이벤트는 자동 스크롤로도 발생하므로, 사용자 조작만 잡습니다.
+    window.addEventListener("wheel", markManual, { passive: true });
+    window.addEventListener("touchmove", markManual, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", markManual);
+      window.removeEventListener("touchmove", markManual);
+    };
+  }, []);
+
   // Auto scroll side effect
   useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
+    const element = activeLineRef.current;
+    if (!element) return;
+
+    // 방금 직접 스크롤했다면 잠시 자동 스크롤을 멈춥니다.
+    if (Date.now() - lastManualScrollAt.current < MANUAL_SCROLL_PAUSE_MS) return;
+
+    // 이미 읽기 좋은 위치에 있으면 굳이 움직이지 않습니다.
+    // 줄이 바뀔 때마다 무조건 스크롤하면 화면이 계속 흔들립니다.
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const isComfortablyVisible =
+      rect.top >= viewportHeight * COMFORT_ZONE_TOP &&
+      rect.bottom <= viewportHeight * COMFORT_ZONE_BOTTOM;
+    if (isComfortablyVisible) return;
+
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeIndex]); // Only run when activeIndex changes
 
   // Determine if we should show loading state for dummy tracks
@@ -267,6 +338,15 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
                   </div>
                 </div>
               )}
+
+              <div className="flex justify-center">
+                <OpenInSpotifyButton
+                  trackId={storeTrackId}
+                  title={displayTitle}
+                  artist={displayArtist}
+                  label={t.openInSpotify}
+                />
+              </div>
             </div>
 
             {/* Lyrics Content */}
@@ -329,6 +409,15 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
                   </div>
                 </div>
               )}
+
+              <div className="flex justify-center">
+                <OpenInSpotifyButton
+                  trackId={storeTrackId}
+                  title={displayTitle}
+                  artist={displayArtist}
+                  label={t.openInSpotify}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col items-center justify-center text-zinc-500 py-12">
@@ -420,6 +509,15 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
             ) : (
               <span className="text-sm text-zinc-500">{t.notPlaying}</span>
             )}
+          </div>
+
+          <div className="flex justify-center mt-4">
+            <OpenInSpotifyButton
+              trackId={storeTrackId}
+              title={displayTitle}
+              artist={displayArtist}
+              label={t.openInSpotify}
+            />
           </div>
         </div>
 
