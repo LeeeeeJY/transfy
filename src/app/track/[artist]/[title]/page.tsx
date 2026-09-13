@@ -13,6 +13,7 @@ import {
   type TrackSource,
 } from "@/lib/utils";
 import { pickBestMatch } from "@/lib/track-match";
+import { localizeTrackNames } from "@/lib/itunes-locale";
 import { absoluteUrl } from "@/lib/site";
 import { searchTracksAction, getTrackByIdAction } from "@/app/actions/search";
 
@@ -27,6 +28,9 @@ interface TrackInfo {
   id: string;
   title: string;
   artist: string;
+  /** 발매 지역 표기에 맞춘 표시용 이름. 가사 조회에는 쓰지 않습니다. */
+  localizedTitle: string | null;
+  localizedArtist: string | null;
   albumArt: string;
   duration: number; // seconds
   lyrics: string | null;
@@ -46,7 +50,8 @@ const getTrackInfo = cache(
     artistSlug: string,
     titleSlug: string,
     refId: string,
-    refSource: string
+    refSource: string,
+    uiLang: string
   ): Promise<TrackInfo | null> => {
     const artist = decodeTrackUrlParam(artistSlug);
     const title = decodeTrackUrlParam(titleSlug);
@@ -60,10 +65,18 @@ const getTrackInfo = cache(
     );
 
     if (dummySong) {
+      const localized = await localizeTrackNames(
+        dummySong.title,
+        dummySong.artist,
+        uiLang
+      );
+
       return {
         id: fallbackId,
         title: dummySong.title,
         artist: dummySong.artist,
+        localizedTitle: localized?.title ?? null,
+        localizedArtist: localized?.artist ?? null,
         albumArt: dummySong.albumArt,
         duration: 0,
         lyrics: dummySong.lyrics,
@@ -76,10 +89,20 @@ const getTrackInfo = cache(
     if (refId && source) {
       const exact = await getTrackByIdAction(refId, source);
       if (exact) {
+        // 국내 발매곡은 발매 당시의 한국어 표기를 함께 찾아 둡니다.
+        const localized = await localizeTrackNames(
+          exact.title,
+          exact.artist,
+          uiLang,
+          source === "itunes" ? exact.id : ""
+        );
+
         return {
           id: externalTrackKey(source, exact.id),
           title: exact.title,
           artist: exact.artist,
+          localizedTitle: localized?.title ?? null,
+          localizedArtist: localized?.artist ?? null,
           albumArt: exact.albumArt || "/file.svg",
           duration: exact.duration,
           lyrics: null, // 가사는 클라이언트(useLyricsFetcher)에서 LRCLIB로 조회
@@ -90,7 +113,7 @@ const getTrackInfo = cache(
 
     // 3. ID가 없는 경우(직접 접속, 검색 엔진 유입, 사이트맵)에만 제목으로 검색합니다.
     try {
-      const lang = await getLanguageFromHeaders();
+      const lang = uiLang;
 
       // 3-1. 아티스트 + 제목으로 검색
       let searchResultTracks = await searchTracksAction(`${artist} ${title}`, lang);
@@ -119,6 +142,9 @@ const getTrackInfo = cache(
         id: fallbackId,
         title: best.title,
         artist: best.artist,
+        // searchTracksAction이 목록을 만들면서 발매 표기를 함께 붙여 둡니다.
+        localizedTitle: best.displayTitle ?? null,
+        localizedArtist: best.displayArtist ?? null,
         albumArt: best.albumArt || "/file.svg",
         duration: best.duration,
         lyrics: null,
@@ -136,16 +162,20 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const query = await searchParams;
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
+  const lang = await getLanguageFromHeaders();
 
   // Fetch real info for better metadata
   const trackInfo = await getTrackInfo(
     artist,
     title,
     firstParam(query.id) ?? "",
-    firstParam(query.src) ?? ""
+    firstParam(query.src) ?? "",
+    lang
   );
-  const displayTitle = trackInfo?.title || decodedTitle;
-  const displayArtist = trackInfo?.artist || decodedArtist;
+  const displayTitle =
+    trackInfo?.localizedTitle || trackInfo?.title || decodedTitle;
+  const displayArtist =
+    trackInfo?.localizedArtist || trackInfo?.artist || decodedArtist;
 
   const pageTitle = `${displayTitle} - ${displayArtist}`; // Removed " | Transfy" here because layout template adds it
   const description = trackInfo?.lyrics
@@ -179,25 +209,30 @@ export default async function TrackPage({ params, searchParams }: Props) {
   const { artist, title } = await params;
   const query = await searchParams;
 
+  // Common props
+  const initialLang = await getLanguageFromHeaders();
+
   const trackInfo = await getTrackInfo(
     artist,
     title,
     firstParam(query.id) ?? "",
-    firstParam(query.src) ?? ""
+    firstParam(query.src) ?? "",
+    initialLang
   );
   const decodedArtist = decodeTrackUrlParam(artist);
   const decodedTitle = decodeTrackUrlParam(title);
 
-  // Common props
-  const initialLang = await getLanguageFromHeaders();
+  // 화면과 구조화 데이터에는 발매 지역 표기를 우선 씁니다.
+  const pageTitle = trackInfo?.localizedTitle || trackInfo?.title || decodedTitle;
+  const pageArtist = trackInfo?.localizedArtist || trackInfo?.artist || decodedArtist;
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "MusicRecording",
-    "name": trackInfo?.title || decodedTitle,
+    "name": pageTitle,
     "byArtist": {
       "@type": "MusicGroup",
-      "name": trackInfo?.artist || decodedArtist,
+      "name": pageArtist,
     },
     "url": absoluteUrl(`/track/${artist}/${title}`),
     ...(trackInfo && {
@@ -220,8 +255,8 @@ export default async function TrackPage({ params, searchParams }: Props) {
 
       {/* Hidden Content for SEO Bots */}
       <div className="sr-only">
-        <h1>{trackInfo?.title || decodedTitle} Lyrics - {trackInfo?.artist || decodedArtist}</h1>
-        <p>Translated lyrics for {trackInfo?.title || decodedTitle} by {trackInfo?.artist || decodedArtist}</p>
+        <h1>{pageTitle} Lyrics - {pageArtist}</h1>
+        <p>Translated lyrics for {pageTitle} by {pageArtist}</p>
         {trackInfo?.lyrics && <pre>{trackInfo.lyrics}</pre>}
       </div>
 
@@ -235,6 +270,8 @@ export default async function TrackPage({ params, searchParams }: Props) {
           id: trackInfo?.id || staticTrackKey(decodedArtist, decodedTitle),
           title: trackInfo?.title || decodedTitle,
           artist: trackInfo?.artist || decodedArtist,
+          localizedTitle: trackInfo?.localizedTitle ?? null,
+          localizedArtist: trackInfo?.localizedArtist ?? null,
           albumArt: trackInfo?.albumArt || "",
           duration: trackInfo?.duration || 0,
           lyrics: trackInfo?.lyrics || "",

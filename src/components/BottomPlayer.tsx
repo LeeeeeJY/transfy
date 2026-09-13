@@ -22,6 +22,8 @@ export default function BottomPlayer() {
   const {
     title,
     artist,
+    localizedTitle,
+    localizedArtist,
     albumArt,
     duration,
     trackId,
@@ -35,6 +37,10 @@ export default function BottomPlayer() {
 
   if (!title && !artist) return null; // Hide only if no track info at all
 
+  // 국내 발매곡은 발매 당시의 한국어 표기로 보여 줍니다.
+  const displayTitle = localizedTitle || title;
+  const displayArtist = localizedArtist || artist;
+
   // 이미 가사 화면을 보고 있으면 "가사 보기"는 같은 곳으로 보내는 버튼이 됩니다.
   const isOnLyricsPage =
     pathname?.startsWith("/track/") || pathname?.startsWith("/lyric/");
@@ -47,12 +53,12 @@ export default function BottomPlayer() {
         <div className="flex items-center gap-2 flex-1 min-w-0 md:gap-3 md:w-1/2">
           {albumArt && (
             <div className="relative w-10 h-10 md:w-14 md:h-14 flex-shrink-0 rounded overflow-hidden">
-              <Image src={albumArt} alt={title} fill className="object-cover" />
+              <Image src={albumArt} alt={displayTitle} fill className="object-cover" />
             </div>
           )}
           <div className="overflow-hidden min-w-0 flex-1">
-            <p className="font-semibold truncate text-white text-sm md:text-base">{title}</p>
-            <p className="text-xs text-gray-400 truncate">{artist}</p>
+            <p className="font-semibold truncate text-white text-sm md:text-base">{displayTitle}</p>
+            <p className="text-xs text-gray-400 truncate">{displayArtist}</p>
           </div>
           {/* 재생 중인지 한눈에 보이도록 표시합니다. */}
           {session?.accessToken && isPlaying && (

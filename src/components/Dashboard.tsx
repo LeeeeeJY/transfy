@@ -95,10 +95,11 @@ export default function Dashboard({
       try {
         if (session?.accessToken) {
           // Fetch User Specific Data
+          // 표시 언어를 함께 넘기면 국내 발매곡의 한국어 표기도 같이 받아 옵니다.
           const [recent, artists, tracks, userPlaylists] = await Promise.all([
-            getRecentlyPlayedAction(),
+            getRecentlyPlayedAction(initialUiLanguage),
             getUserTopItemsAction("artists", "medium_term"),
-            getUserTopItemsAction("tracks", "medium_term"),
+            getUserTopItemsAction("tracks", "medium_term", initialUiLanguage),
             getUserPlaylistsAction(),
           ]);
 
@@ -116,6 +117,15 @@ export default function Dashboard({
 
     fetchData();
   }, [session, initialUiLanguage]);
+
+  /**
+   * 화면에 보여 줄 이름입니다. 국내 발매곡은 발매 당시의 한국어 표기를 씁니다.
+   * 주소를 만들 때는 원래 표기를 그대로 써야 상세 페이지가 같은 곡을 찾습니다.
+   */
+  const displayNameOf = (track: Track) => ({
+    title: track.displayTitle || track.title,
+    artist: track.displayArtist || track.artist,
+  });
 
   /** 아티스트·플레이리스트는 가사가 없으므로 스포티파이에서 열어 줍니다. */
   const openInSpotify = (uri: string) => {
@@ -191,7 +201,9 @@ export default function Dashboard({
             <h2 className="text-lg font-bold">{t.recentlyPlayed}</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {recentTracks.slice(0, 5).map((track, i) => (
+            {recentTracks.slice(0, 5).map((track, i) => {
+              const name = displayNameOf(track);
+              return (
               <div
                 key={`${track.id}-${i}`}
                 onClick={() =>
@@ -209,7 +221,7 @@ export default function Dashboard({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={track.albumArt}
-                    alt={track.title}
+                    alt={name.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -217,11 +229,12 @@ export default function Dashboard({
                   </div>
                 </div>
                 <h3 className="font-semibold text-white truncate">
-                  {track.title}
+                  {name.title}
                 </h3>
-                <p className="text-sm text-zinc-400 truncate">{track.artist}</p>
+                <p className="text-sm text-zinc-400 truncate">{name.artist}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
@@ -234,7 +247,9 @@ export default function Dashboard({
             <h2 className="text-lg font-bold">{t.topChartsSpotify}</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {topTracks.slice(0, 5).map((track) => (
+            {topTracks.slice(0, 5).map((track) => {
+              const name = displayNameOf(track);
+              return (
               <div
                 key={track.id}
                 onClick={() => openLyrics(track.title, track.artist, track.id)}
@@ -244,7 +259,7 @@ export default function Dashboard({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={track.albumArt}
-                    alt={track.title}
+                    alt={name.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -252,11 +267,12 @@ export default function Dashboard({
                   </div>
                 </div>
                 <h3 className="font-semibold text-white truncate">
-                  {track.title}
+                  {name.title}
                 </h3>
-                <p className="text-sm text-zinc-400 truncate">{track.artist}</p>
+                <p className="text-sm text-zinc-400 truncate">{name.artist}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

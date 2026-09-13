@@ -125,6 +125,11 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   const uiLanguage = usePlayerStore((s) => s.uiLanguage);
   const pinnedTrackId = usePlayerStore((s) => s.pinnedTrackId);
   const storeTrackId = usePlayerStore((s) => s.trackId);
+  const storeTitle = usePlayerStore((s) => s.title);
+  const storeArtist = usePlayerStore((s) => s.artist);
+  const storeAlbumArt = usePlayerStore((s) => s.albumArt);
+  const localizedTitle = usePlayerStore((s) => s.localizedTitle);
+  const localizedArtist = usePlayerStore((s) => s.localizedArtist);
 
   // 활성 줄 번호만 구독하므로, 줄이 실제로 바뀔 때만 다시 그립니다.
   const activeIndex = usePlayerStore((s) => findActiveLineIndex(s.lyrics, s.progressMs));
@@ -283,10 +288,16 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
   }
 
   // Determine title/artist/artwork to display (Shared logic)
-  const { title: storeTitle, artist: storeArtist, albumArt: storeAlbumArt } = usePlayerStore.getState();
-  const displayTitle = dummySong?.title || storeTitle;
-  const displayArtist = dummySong?.artist || storeArtist;
+  //
+  // 국내 발매곡은 발매 당시의 한국어 표기(localizedTitle)로 보여 줍니다.
+  // 가사 조회에 쓰는 원래 표기는 스토어에 그대로 남아 있습니다.
+  const displayTitle = dummySong?.title || localizedTitle || storeTitle;
+  const displayArtist = dummySong?.artist || localizedArtist || storeArtist;
   const displayArt = dummySong?.albumArt || storeAlbumArt;
+
+  // 스포티파이에서 곡을 찾을 때는 스포티파이가 쓰는 원래 표기로 검색해야 합니다.
+  const searchTitle = dummySong?.title || storeTitle;
+  const searchArtist = dummySong?.artist || storeArtist;
 
   // Render static view for non-logged in users
   if (!session) {
@@ -342,8 +353,8 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
               <div className="flex justify-center">
                 <OpenInSpotifyButton
                   trackId={storeTrackId}
-                  title={displayTitle}
-                  artist={displayArtist}
+                  title={searchTitle}
+                  artist={searchArtist}
                   label={t.openInSpotify}
                 />
               </div>
@@ -413,8 +424,8 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
               <div className="flex justify-center">
                 <OpenInSpotifyButton
                   trackId={storeTrackId}
-                  title={displayTitle}
-                  artist={displayArtist}
+                  title={searchTitle}
+                  artist={searchArtist}
                   label={t.openInSpotify}
                 />
               </div>
@@ -514,8 +525,8 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
           <div className="flex justify-center mt-4">
             <OpenInSpotifyButton
               trackId={storeTrackId}
-              title={displayTitle}
-              artist={displayArtist}
+              title={searchTitle}
+              artist={searchArtist}
               label={t.openInSpotify}
             />
           </div>

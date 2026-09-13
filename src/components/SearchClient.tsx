@@ -227,6 +227,17 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
     handleSearch(query);
   };
 
+  /**
+   * 화면에 보여 줄 이름입니다.
+   *
+   * 국내 발매곡은 발매 당시의 한국어 표기를 씁니다. 주소를 만들 때는 원래
+   * 표기(track.title)를 그대로 써야 상세 페이지가 같은 곡을 찾습니다.
+   */
+  const displayNameOf = (track: Track) => ({
+    title: track.displayTitle || track.title,
+    artist: track.displayArtist || track.artist,
+  });
+
   /** 검색 결과의 트랙이 어느 서비스에서 왔는지 판별합니다. */
   const trackSourceOf = (track: Track): TrackSource =>
     track.uri?.startsWith("spotify:") ? "spotify" : "itunes";
@@ -303,7 +314,9 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
       {/* Search Results Grid */}
       {results.length > 0 && (
         <div className="flex flex-col gap-4">
-          {results.map((track) => (
+          {results.map((track) => {
+            const name = displayNameOf(track);
+            return (
             <div
               key={track.id}
               onClick={() => handleTrackClick(track, "search")}
@@ -314,7 +327,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={track.albumArt}
-                  alt={track.title}
+                  alt={name.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               </div>
@@ -322,10 +335,10 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               {/* Info */}
               <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
                 <h3 className="font-bold text-lg text-white truncate group-hover:text-green-400 transition-colors w-full">
-                  {track.title}
+                  {name.title}
                 </h3>
                 <p className="text-zinc-400 text-sm truncate w-full">
-                  {track.artist}
+                  {name.artist}
                 </p>
                 <p className="text-zinc-600 text-xs mt-1 truncate w-full">
                   {track.album}
@@ -337,7 +350,8 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                 <FileText className="w-8 h-8" />
               </div>
             </div>
-          ))}
+            );
+          })}
           
           {hasMoreResults && (
             <button
@@ -375,7 +389,9 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {topCharts.map((track, index) => (
+                {topCharts.map((track, index) => {
+                  const name = displayNameOf(track);
+                  return (
                   <div
                     key={track.id}
                     onClick={() => handleTrackClick(track, "charts")}
@@ -391,7 +407,7 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={track.albumArt}
-                        alt={track.title}
+                        alt={name.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     </div>
@@ -399,10 +415,10 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                     {/* Info */}
                     <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
                       <h3 className="font-bold text-base text-white truncate group-hover:text-green-400 transition-colors w-full">
-                        {track.title}
+                        {name.title}
                       </h3>
                       <p className="text-zinc-400 text-xs truncate w-full">
-                        {track.artist}
+                        {name.artist}
                       </p>
                     </div>
 
@@ -411,7 +427,8 @@ export default function SearchClient({ initialLang }: SearchClientProps) {
                       <FileText className="w-6 h-6" />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
                 {hasMoreCharts && (
                   <button

@@ -59,9 +59,23 @@
 또한 사용자가 직접 선택한 곡은 `pinnedTrackId`로 고정해 두므로, 스포티파이에서
 다른 곡이 재생 중이어도 폴러가 화면의 곡 정보를 덮어쓰지 않습니다.
 
+### 3.1.2 표시 이름 (Display Names)
+스포티파이와 아이튠즈 미국 스토어는 국내 발매곡도 로마자 표기로 돌려줍니다("IU",
+"BTS"). `src/lib/itunes-locale.ts`는 아이튠즈 lookup을 사용자의 표시 언어에 해당하는
+스토어프론트(한국어면 `country=KR&lang=ko_kr`)로 호출해 발매 당시의 표기("아이유",
+"방탄소년단", "라일락")를 가져옵니다. 한국 스토어프론트는 검색이 항상 0건이므로,
+검색은 미국 스토어로 하고 이름만 다시 조회합니다.
+
+여기서 얻은 이름은 화면에 보여 줄 때만 씁니다. LRCLIB 가사 조회, 재생 중인 곡 판정,
+주소 생성에는 원래 표기를 그대로 써야 하므로, 스토어에서도 `localizedTitle`과
+`localizedArtist`로 분리해 보관하고 목록에서는 `displayTitle`, `displayArtist`로
+전달합니다. 결과가 로마자 표기 그대로라면 다른 발매본의 이름을 잘못 붙이지 않도록
+바꾸지 않고, 조회 결과는 30일간 캐시합니다.
+
 ### 3.2 상태 관리 (Zustand Store)
 `usePlayerStore`는 애플리케이션의 전역 상태를 관리합니다.
 - **Playback**: `isPlaying`, `trackId`, `pinnedTrackId`, `title`, `artist`, `progressMs`
+- **Display**: `localizedTitle`, `localizedArtist` (발매 지역 표기. 조회에는 쓰지 않습니다)
 - **Lyrics**: `lyrics` (Array of time, text, translation), `isLoadingLyrics`, `isTranslating`
 - **Settings**: `showTranslation`, `targetLanguage`
 

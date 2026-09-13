@@ -52,6 +52,16 @@ interface PlayerState {
   trackId: string | null;
   duration: number; // seconds
 
+  /**
+   * 발매 지역 표기에 맞춘 표시용 이름입니다.
+   *
+   * LRCLIB 가사 조회와 재생 중인 곡 판정은 원래 표기(title, artist)를 그대로
+   * 써야 하므로, 화면에 보여 줄 이름만 따로 보관합니다. 아직 조회하지 못했거나
+   * 국내 발매곡이 아니면 null이며, 이때는 원래 표기를 그대로 보여 줍니다.
+   */
+  localizedTitle: string | null;
+  localizedArtist: string | null;
+
   // Actions
   setTrack: (track: Track) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -74,6 +84,7 @@ interface PlayerState {
   setIsTranslating: (translating: boolean) => void;
   setPinnedTrackId: (trackId: string | null) => void;
   setProvider: (provider: "spotify" | "apple" | "none") => void;
+  setLocalizedNames: (names: { title: string; artist: string } | null) => void;
   
   // Bulk update
   setPlayback: (state: Partial<PlayerState>) => void;
@@ -108,6 +119,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   albumArt: '',
   trackId: null,
   duration: 0,
+  localizedTitle: null,
+  localizedArtist: null,
   lyricsRetryTrigger: 0,
 
   setTrack: (track) => set({ 
@@ -118,7 +131,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     artist: track.artist,
     albumArt: track.albumArt,
     trackId: track.id,
-    duration: track.duration
+    duration: track.duration,
+    // 곡이 바뀌었으므로 앞 곡의 표시용 이름은 버립니다.
+    localizedTitle: null,
+    localizedArtist: null
   }),
   setIsPlaying: (isPlaying) => set({ isPlaying }),
   setProgress: (progress) => set({ progress, progressMs: progress * 1000 }),
@@ -145,7 +161,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     trackId: null,
     duration: 0,
     isTranslating: false,
-    pinnedTrackId: null
+    pinnedTrackId: null,
+    localizedTitle: null,
+    localizedArtist: null
   }),
   setShowTranslation: (show) => set({ showTranslation: show }),
   toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
@@ -159,6 +177,22 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setIsTranslating: (translating) => set({ isTranslating: translating }),
   setPinnedTrackId: (trackId) => set({ pinnedTrackId: trackId }),
   setProvider: (provider) => set({ provider }),
-  setPlayback: (state) => set((prev) => ({ ...prev, ...state })),
+  setLocalizedNames: (names) => set({
+    localizedTitle: names?.title ?? null,
+    localizedArtist: names?.artist ?? null,
+  }),
+  setPlayback: (state) => set((prev) => {
+    // 곡이 바뀌면 앞 곡의 표시용 이름이 남지 않도록 지웁니다.
+    const trackChanged =
+      state.trackId !== undefined &&
+      state.trackId !== prev.trackId &&
+      state.localizedTitle === undefined;
+
+    return {
+      ...prev,
+      ...state,
+      ...(trackChanged ? { localizedTitle: null, localizedArtist: null } : null),
+    };
+  }),
   setLyricsRetryTrigger: () => set((s) => ({ lyricsRetryTrigger: s.lyricsRetryTrigger + 1 })),
 }));

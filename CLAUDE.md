@@ -56,6 +56,15 @@ ID 없이 들어온 경우에는 `src/lib/track-match.ts`의 `pickBestMatch`로 
 수정된 회귀입니다. 확실한 후보가 없으면 `null`을 돌려주고 URL의 값을 그대로 쓰는
 것이 올바른 동작입니다.
 
+### 화면에 보여 줄 이름과 조회에 쓸 이름은 다릅니다
+
+스포티파이는 국내 발매곡도 로마자 표기로 돌려주므로, `src/lib/itunes-locale.ts`가
+아이튠즈 한국 스토어프론트에서 발매 당시의 표기를 가져와 화면에 보여 줍니다.
+이 이름은 **표시 전용**입니다. LRCLIB 가사 조회, 재생 중인 곡 판정
+(`isSamePinnedTrack`), 주소 생성에는 반드시 원래 표기(`title`, `artist`)를 쓰세요.
+스토어의 `localizedTitle`/`localizedArtist`와 목록의 `displayTitle`/`displayArtist`를
+조회에 쓰면 가사를 찾지 못하거나 다른 곡이 열립니다.
+
 ### 애플 뮤직과 아이튠즈는 다릅니다
 
 애플 뮤직 재생 연동은 제거되었으므로 되살리지 마세요. 반면 **iTunes Search API는

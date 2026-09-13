@@ -242,6 +242,9 @@ interface TrackInfo {
   id?: string; // Optional URL-based ID to prevent mismatch
   title: string;
   artist: string;
+  /** 발매 지역 표기에 맞춘 표시용 이름 (없으면 원래 표기를 그대로 씁니다) */
+  localizedTitle?: string | null;
+  localizedArtist?: string | null;
   albumArt: string;
   duration?: number; // seconds (LRCLIB 매칭 정확도를 높이는 데 사용)
   lyrics: string | null;
@@ -291,6 +294,9 @@ export default function ClientHome({
     const baseState = {
       title: initialTrack.title,
       artist: initialTrack.artist,
+      // 서버에서 미리 찾아 둔 이름이 있으면 첫 화면부터 그 표기로 보여 줍니다.
+      localizedTitle: initialTrack.localizedTitle ?? null,
+      localizedArtist: initialTrack.localizedArtist ?? null,
       albumArt: initialTrack.albumArt,
       duration: initialTrack.duration ?? 0,
       isPlaying: false, // It's static view initially

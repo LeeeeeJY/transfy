@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getAppAccessToken } from "@/lib/spotify-app";
 import type { TrackSource } from "@/lib/utils";
+import { hasLocalizedStorefront, localizeTrackList } from "@/lib/itunes-locale";
 
 export interface Track {
   id: string;
@@ -14,6 +15,12 @@ export interface Track {
   albumArt: string;
   duration: number; // in seconds
   uri: string;
+  /**
+   * 발매 지역 표기에 맞춘 표시용 이름입니다. 국내 발매곡을 한국어로 보여 줄 때 씁니다.
+   * 가사 조회와 주소 생성에는 원래 표기(title, artist)를 그대로 써야 합니다.
+   */
+  displayTitle?: string;
+  displayArtist?: string;
 }
 
 export interface Artist {
@@ -104,6 +111,29 @@ interface ItunesRssItem {
   artworkUrl100: string;
 }
 
+/**
+ * 목록의 곡들에 발매 지역 표기를 붙입니다.
+ *
+ * 조회에 쓰는 title, artist는 그대로 두고 displayTitle, displayArtist만 채웁니다.
+ * 이름을 찾지 못한 곡은 원래 표기로 남습니다.
+ */
+async function withLocalizedNames(
+  tracks: Track[],
+  lang: string,
+  options: { source: TrackSource; term?: string; maxLookups?: number }
+): Promise<Track[]> {
+  if (!hasLocalizedStorefront(lang) || tracks.length === 0) return tracks;
+
+  const names = await localizeTrackList(tracks, lang, options);
+  if (Object.keys(names).length === 0) return tracks;
+
+  return tracks.map((track) => {
+    const localized = names[track.id];
+    if (!localized) return track;
+    return { ...track, displayTitle: localized.title, displayArtist: localized.artist };
+  });
+}
+
 export async function searchTracksAction(term: string, lang: string = 'en', limit: number = 10, offset: number = 0): Promise<Track[]> {
   if (!term || !term.trim()) return [];
   
@@ -125,7 +155,7 @@ export async function searchTracksAction(term: string, lang: string = 'en', limi
         },
       });
 
-      return response.data.tracks.items.map((item: SpotifyTrack) => ({
+      const tracks: Track[] = response.data.tracks.items.map((item: SpotifyTrack) => ({
         id: item.id,
         title: item.name,
         artist: item.artists.map((a) => a.name).join(', '),
@@ -134,6 +164,9 @@ export async function searchTracksAction(term: string, lang: string = 'en', limi
         duration: item.duration_ms / 1000,
         uri: item.uri
       }));
+
+      // 사용자가 입력한 검색어로 아이튠즈를 한 번만 더 조회해 발매 표기를 붙입니다.
+      return withLocalizedNames(tracks, lang, { source: 'spotify', term });
     } catch (error: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = error as any;
@@ -174,7 +207,7 @@ async function searchTracksItunes(term: string, lang: string, limit: number, off
       },
     });
 
-    return response.data.results.slice(offset).map((item: ItunesTrack) => ({
+    const tracks: Track[] = response.data.results.slice(offset).map((item: ItunesTrack) => ({
       id: String(item.trackId), // iTunes ID is number, convert to string
       title: item.trackName,
       artist: item.artistName,
@@ -183,6 +216,9 @@ async function searchTracksItunes(term: string, lang: string, limit: number, off
       duration: item.trackTimeMillis / 1000,
       uri: '' // No Spotify URI for iTunes tracks
     }));
+
+    // 아이튠즈에서 온 목록은 트랙 ID를 알고 있으므로 한 번의 조회로 이름을 붙입니다.
+    return withLocalizedNames(tracks, lang, { source: 'itunes' });
   } catch (error) {
     console.error('iTunes Search Error:', error);
     return [];
@@ -294,7 +330,7 @@ export async function getTrackByIdAction(
   return null;
 }
 
-export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_range: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<Artist[] | Track[]> {
+export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_range: 'short_term' | 'medium_term' | 'long_term' = 'medium_term', lang: string = 'en'): Promise<Artist[] | Track[]> {
   const session = await getServerSession(authOptions);
 
   if (session?.accessToken) {
@@ -317,7 +353,7 @@ export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_ran
         }));
       } else {
         // tracks
-        return response.data.items.map((item: SpotifyTrack) => ({
+        const tracks: Track[] = response.data.items.map((item: SpotifyTrack) => ({
           id: item.id,
           title: item.name,
           artist: item.artists.map((a) => a.name).join(', '),
@@ -326,6 +362,8 @@ export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_ran
           duration: item.duration_ms / 1000,
           uri: item.uri
         }));
+
+        return withLocalizedNames(tracks, lang, { source: 'spotify' });
       }
     } catch (error: unknown) {
       const status = axios.isAxiosError(error) ? error.response?.status : null;
@@ -353,7 +391,7 @@ export async function getTopChartsAction(lang: string = 'en', limit: number = 10
         }
       });
 
-      return response.data.items.map((item: SpotifyTrack) => ({
+      const tracks: Track[] = response.data.items.map((item: SpotifyTrack) => ({
         id: item.id,
         title: item.name,
         artist: item.artists.map((a) => a.name).join(', '),
@@ -362,6 +400,8 @@ export async function getTopChartsAction(lang: string = 'en', limit: number = 10
         duration: item.duration_ms / 1000,
         uri: item.uri
       }));
+
+      return withLocalizedNames(tracks, lang, { source: 'spotify', maxLookups: limit });
     } catch (error: unknown) {
       const status = axios.isAxiosError(error) ? error.response?.status : null;
       if (status === 401) console.warn('Spotify Top Tracks: token expired or invalid (401)');
@@ -460,7 +500,7 @@ export async function getUserPlaylistsAction(): Promise<Playlist[]> {
   return [];
 }
 
-export async function getRecentlyPlayedAction(): Promise<Track[]> {
+export async function getRecentlyPlayedAction(lang: string = 'en'): Promise<Track[]> {
   const session = await getServerSession(authOptions);
 
   if (!session?.accessToken) {
@@ -477,7 +517,7 @@ export async function getRecentlyPlayedAction(): Promise<Track[]> {
       }
     });
 
-    return response.data.items.map((item: SpotifyPlayHistory) => ({
+    const tracks: Track[] = response.data.items.map((item: SpotifyPlayHistory) => ({
       id: item.track.id,
       title: item.track.name,
       artist: item.track.artists.map((a) => a.name).join(', '),
@@ -486,6 +526,8 @@ export async function getRecentlyPlayedAction(): Promise<Track[]> {
       duration: item.track.duration_ms / 1000,
       uri: item.track.uri
     }));
+
+    return withLocalizedNames(tracks, lang, { source: 'spotify' });
   } catch (error: unknown) {
     const status = axios.isAxiosError(error) ? error.response?.status : null;
     if (status === 401) console.warn('Spotify Recently Played: token expired or invalid (401)');
