@@ -124,7 +124,7 @@ export default async function RootLayout({
             {children}
           </div>
           <BottomPlayer />
-          <Footer />
+          <Footer initialLang={initialLang} />
         </Providers>
         <Analytics />
       </body>

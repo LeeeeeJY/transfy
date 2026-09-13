@@ -28,7 +28,11 @@ const UI_TEXT = {
   },
 };
 
-export default function Footer() {
+interface FooterProps {
+  initialLang?: string;
+}
+
+export default function Footer({ initialLang = "en" }: FooterProps) {
   const { data: session } = useSession();
   const { uiLanguage, title, artist } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
@@ -38,8 +42,10 @@ export default function Footer() {
     setMounted(true);
   }, []);
 
-  const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || "en" : "en";
-  const t = UI_TEXT[currentLang] || UI_TEXT.en;
+  // 서버에서 넘겨받은 화면 언어를 먼저 씁니다. 약관과 개인정보처리방침처럼
+  // 스토어를 채우지 않는 화면에서도 본문과 같은 언어로 보이게 하기 위함입니다.
+  const currentLang = mounted ? (uiLanguage as keyof typeof UI_TEXT) || initialLang : initialLang;
+  const t = UI_TEXT[currentLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
   // If logged in or track info exists, hide the footer to prevent "double footer" look with the player bar
   // The player bar acts as the primary bottom element
