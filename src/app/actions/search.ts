@@ -167,7 +167,10 @@ async function searchTracksItunes(term: string, lang: string, limit: number, off
         entity: 'song',
         limit: limit + offset, // iTunes doesn't support offset directly, so we fetch more and slice
         lang: apiLang,
-        country: apiLang === 'ko_kr' ? 'KR' : 'US',
+        // 한국 아이튠즈 스토어에는 음악 섹션이 없어서 country=KR로 조회하면 결과가
+        // 항상 0건입니다(한국어 검색어도 마찬가지). 카탈로그가 가장 넓은 미국
+        // 스토어로 조회하고, 표기 언어만 사용자 언어에 맞춥니다.
+        country: 'US',
       },
     });
 
