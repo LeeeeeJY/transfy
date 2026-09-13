@@ -24,7 +24,7 @@ const UI_TEXT = {
   zh: {
     footerTerms: "服务条款",
     footerPrivacy: "隐私政策",
-    disclaimer: "本项目仅供教育目的使用的非商业个人项目。歌词数据由LRCLIB提供，所有权利属于原作者。",
+    disclaimer: "本项目是仅供教育目的使用的非商业个人项目。歌词数据由LRCLIB提供，所有权利归原作者所有。",
   },
 };
 
