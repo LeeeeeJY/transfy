@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getServerSession } from "next-auth";
 import "./globals.css";
 import { Providers } from "./providers";
+import { authOptions } from "@/lib/auth";
 import { getLanguageFromHeaders } from "@/lib/server-utils";
 import { SITE_URL } from "@/lib/site";
 
@@ -90,7 +92,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const initialLang = await getLanguageFromHeaders();
+  // 세션을 서버에서 먼저 읽어 두면 첫 화면부터 로그인 상태로 그려집니다.
+  // 이렇게 하지 않으면 이미 로그인한 사용자에게도 로그인 버튼과 로그인 안내 화면이
+  // 잠깐 보였다가 사라집니다. 언어 판별과는 서로 기다릴 이유가 없어 함께 처리합니다.
+  const [initialLang, session] = await Promise.all([
+    getLanguageFromHeaders(),
+    getServerSession(authOptions),
+  ]);
 
   return (
     <html lang={initialLang}>
@@ -118,7 +126,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen flex flex-col`}
       >
-        <Providers>
+        <Providers session={session}>
           <Header initialLang={initialLang} />
           <div className="pt-14 flex-1 flex flex-col">
             {children}
