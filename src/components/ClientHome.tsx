@@ -3,8 +3,6 @@
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
-import BottomPlayer from "@/components/BottomPlayer";
-import SpotifyPlayer from "@/components/SpotifyPlayer";
 import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 import { useLyricsFetcher } from "@/hooks/useLyricsFetcher";
 import { useState, useEffect, useRef } from "react";
@@ -602,8 +600,6 @@ export default function ClientHome({
         <LyricsView initialUiLanguage={initialLang} />
       </main>
 
-      {session && <SpotifyPlayer />}
-      {session && <BottomPlayer />}
     </div>
   );
 }

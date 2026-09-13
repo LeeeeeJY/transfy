@@ -84,6 +84,7 @@ import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BottomPlayer from "@/components/BottomPlayer";
+import SpotifyPlayer from "@/components/SpotifyPlayer";
 
 export default async function RootLayout({
   children,
@@ -123,6 +124,8 @@ export default async function RootLayout({
           <div className="pt-14 flex-1 flex flex-col">
             {children}
           </div>
+          {/* 웹 플레이어는 화면을 이동해도 연결이 유지되도록 레이아웃에 둡니다. */}
+          <SpotifyPlayer />
           <BottomPlayer />
           <Footer />
         </Providers>
