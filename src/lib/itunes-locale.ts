@@ -235,6 +235,75 @@ export async function localizeTrackNames(
 }
 
 /**
+ * 아티스트 이름 하나의 현지 표기를 가져옵니다.
+ *
+ * 아이튠즈의 아티스트 조회(entity=musicArtist)는 한국 스토어프론트에서도 "IU"처럼
+ * 로마자 표기를 그대로 돌려줍니다. 한국어 표기는 곡 정보에만 붙어 있으므로,
+ * 그 아티스트의 곡을 찾아 거기에 적힌 아티스트 이름을 가져옵니다.
+ */
+export async function localizeArtistName(
+  artist: string,
+  lang: string
+): Promise<string | null> {
+  const storefront = STOREFRONT_BY_LANG[lang];
+  if (!storefront || !artist) return null;
+
+  try {
+    const pool = await getCachedCandidatePool(
+      artist,
+      storefront.country,
+      storefront.lang
+    );
+
+    const wanted = normalizeForMatch(artist);
+    for (const candidate of pool.candidates) {
+      // 참여 아티스트가 함께 적힌 곡("BTS & Megan Thee Stallion")은 건너뛰고,
+      // 이 아티스트 혼자 부른 곡에서만 이름을 가져옵니다.
+      if (normalizeForMatch(candidate.artist) !== wanted) continue;
+
+      const found = pool.names[candidate.id];
+      if (!found) continue;
+
+      const localized = preferLocalized(artist, found.artist);
+      if (localized !== artist) return localized;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(
+      "iTunes localized artist lookup failed:",
+      (error as Error)?.message || error
+    );
+    return null;
+  }
+}
+
+/**
+ * 목록에 들어 있는 아티스트들의 현지 표기를 가져옵니다.
+ * 돌려주는 객체의 키는 입력한 아티스트의 id입니다.
+ */
+export async function localizeArtistList(
+  artists: { id: string; name: string }[],
+  lang: string,
+  { maxLookups = 6 }: { maxLookups?: number } = {}
+): Promise<Record<string, string>> {
+  if (!STOREFRONT_BY_LANG[lang] || artists.length === 0) return {};
+
+  const found = await Promise.all(
+    artists.slice(0, maxLookups).map(async (artist) => {
+      const localized = await localizeArtistName(artist.name, lang);
+      return localized ? ([artist.id, localized] as const) : null;
+    })
+  );
+
+  const result: Record<string, string> = {};
+  for (const entry of found) {
+    if (entry) result[entry[0]] = entry[1];
+  }
+  return result;
+}
+
+/**
  * 목록에 들어 있는 곡들의 현지 표기를 한꺼번에 가져옵니다.
  * 돌려주는 객체의 키는 입력한 곡의 id입니다.
  *

@@ -94,7 +94,7 @@ export default function Dashboard({
           // 표시 언어를 함께 넘기면 국내 발매곡의 한국어 표기도 같이 받아 옵니다.
           const [recent, artists, tracks, userPlaylists] = await Promise.all([
             getRecentlyPlayedAction(initialUiLanguage),
-            getUserTopItemsAction("artists", "medium_term"),
+            getUserTopItemsAction("artists", "medium_term", initialUiLanguage),
             getUserTopItemsAction("tracks", "medium_term", initialUiLanguage),
             getUserPlaylistsAction(),
           ]);
@@ -292,7 +292,7 @@ export default function Dashboard({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={artist.image}
-                      alt={artist.name}
+                      alt={artist.displayName || artist.name}
                       className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
@@ -305,7 +305,7 @@ export default function Dashboard({
                   </div>
                 </div>
                 <h3 className="font-semibold text-white truncate text-center">
-                  {artist.name}
+                  {artist.displayName || artist.name}
                 </h3>
                 <p className="text-sm text-zinc-400 truncate text-center">
                   {artist.genres}

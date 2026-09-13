@@ -5,7 +5,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getAppAccessToken } from "@/lib/spotify-app";
 import type { TrackSource } from "@/lib/utils";
-import { hasLocalizedStorefront, localizeTrackList } from "@/lib/itunes-locale";
+import {
+  hasLocalizedStorefront,
+  localizeArtistList,
+  localizeTrackList,
+} from "@/lib/itunes-locale";
 
 export interface Track {
   id: string;
@@ -29,6 +33,8 @@ export interface Artist {
   image: string;
   genres: string;
   uri: string;
+  /** 발매 지역 표기에 맞춘 표시용 이름 (없으면 name을 그대로 씁니다) */
+  displayName?: string;
 }
 
 export interface Playlist {
@@ -332,13 +338,21 @@ export async function getUserTopItemsAction(type: 'artists' | 'tracks', time_ran
       });
 
       if (type === 'artists') {
-        return response.data.items.map((item: SpotifyArtist) => ({
+        const artists: Artist[] = response.data.items.map((item: SpotifyArtist) => ({
           id: item.id,
           name: item.name,
           image: item.images?.[0]?.url || '',
           genres: (item.genres || []).slice(0, 2).join(', '),
           uri: item.uri
         }));
+
+        // 아티스트 이름은 곡 정보에만 한국어 표기가 붙어 있어 따로 조회합니다.
+        if (!hasLocalizedStorefront(lang)) return artists;
+
+        const names = await localizeArtistList(artists, lang);
+        return artists.map((artist) =>
+          names[artist.id] ? { ...artist, displayName: names[artist.id] } : artist
+        );
       } else {
         // tracks
         const tracks: Track[] = response.data.items.map((item: SpotifyTrack) => ({
