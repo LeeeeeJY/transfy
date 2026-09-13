@@ -3,32 +3,114 @@ import Link from 'next/link';
 import { getLanguageFromHeaders } from '@/lib/server-utils';
 import { CONTACT_EMAIL } from '@/lib/site';
 
-const TERMS_TEXT = {
+interface PolicySection {
+  title: string;
+  body: string;
+  /** 본문 뒤에 목록으로 덧붙일 항목 */
+  list?: string[];
+}
+
+interface TermsCopy {
+  title: string;
+  updated: string;
+  intro: string;
+  sections: PolicySection[];
+  contactTitle: string;
+  contactDesc: string;
+  back: string;
+}
+
+const TERMS_TEXT: Record<'ko' | 'en', TermsCopy> = {
   ko: {
     title: "이용약관",
-    introTitle: "1. 소개",
-    introDesc: "Transfy에 오신 것을 환영합니다. 본 웹사이트에 접속함으로써 귀하는 본 이용약관, 모든 적용 가능한 법률 및 규정을 준수할 것에 동의하며, 적용 가능한 현지 법률을 준수할 책임이 있음에 동의합니다.",
-    licenseTitle: "2. 사용 라이선스",
-    licenseDesc: "개인적, 비상업적 일시적 열람만을 목적으로 Transfy의 자료(정보 또는 소프트웨어) 사본 1부를 일시적으로 다운로드할 수 있는 권한이 부여됩니다.",
-    disclaimerTitle: "3. 면책 조항",
-    disclaimerDesc: "Transfy 웹사이트의 자료는 '있는 그대로' 제공됩니다. Transfy는 명시적이든 묵시적이든 어떠한 보증도 하지 않으며, 이에 따라 상품성, 특정 목적에의 적합성, 지식재산권 비침해 또는 기타 권리 침해에 대한 묵시적 보증 또는 조건을 포함하되 이에 국한되지 않는 모든 다른 보증을 부인하고 무효화합니다.",
-    contactTitle: "4. 문의와 오류 제보",
-    contactDesc: "서비스를 이용하시다가 가사가 어긋나거나 번역이 이상하게 나오는 등 잘못된 점을 발견하셨다면, 아래 주소로 알려 주세요. 어떤 곡에서 어떤 문제가 있었는지 함께 적어 주시면 확인한 뒤에 고치겠습니다.",
+    updated: "최종 수정일: 2026년 9월 13일",
+    intro:
+      "Transfy는 스포티파이에서 재생 중인 곡의 가사를 가져와 실시간으로 번역해 보여 주는 서비스입니다. 개인이 학습을 목적으로 만들어 무료로 운영하는 비상업적 프로젝트이며, 이 서비스를 이용하시면 아래 내용에 동의하신 것으로 봅니다.",
+    sections: [
+      {
+        title: "1. 이용 범위",
+        body: "개인적인 감상을 목적으로 누구나 무료로 이용하실 수 있습니다. 다만 다음 행위는 삼가 주시기 바랍니다.",
+        list: [
+          "자동화된 수단으로 대량의 요청을 보내 서비스 운영을 방해하는 행위",
+          "이 서비스가 보여 주는 가사와 번역을 상업적인 목적으로 재배포하는 행위",
+          "이 서비스나 연동된 외부 서비스가 정상적으로 동작하지 못하도록 우회하거나 방해하는 행위",
+        ],
+      },
+      {
+        title: "2. 가사와 저작권",
+        body: "가사 원문은 LRCLIB에서 제공받으며, 가사와 음원에 관한 모든 권리는 원저작자와 권리자에게 있습니다. Transfy는 가사를 직접 보유하거나 판매하지 않고, 이용자가 듣고 있는 곡에 맞추어 보여 줄 뿐입니다. 권리자께서 특정 곡의 게시 중단을 요청하시면 확인한 뒤에 조치하겠습니다.",
+      },
+      {
+        title: "3. 번역 결과의 정확도",
+        body: "번역문은 기계 번역으로 자동 생성되기 때문에 원문의 뜻과 다르게 옮겨질 수 있습니다. 특히 관용 표현이나 비유가 많은 가사는 정확도가 떨어집니다. 번역문을 학습이나 인용의 근거로 삼으실 때에는 반드시 원문을 함께 확인해 주세요.",
+      },
+      {
+        title: "4. 외부 서비스와의 관계",
+        body: "Transfy는 Spotify AB, Apple Inc., LRCLIB를 비롯한 어떤 외부 서비스와도 제휴하거나 후원을 받는 관계가 아닙니다. 각 서비스의 이름과 상표는 해당 권리자의 것이며, 스포티파이 계정으로 로그인하는 기능은 스포티파이가 공개한 API를 통해 제공됩니다.",
+      },
+      {
+        title: "5. 서비스의 변경과 중단",
+        body: "개인이 운영하는 프로젝트이므로 서비스의 내용이 바뀌거나, 미리 알려 드리지 못한 채 일시적으로 또는 영구히 중단될 수 있습니다. 연동된 외부 서비스의 정책이 바뀌거나 장애가 생기면 가사 조회와 번역이 동작하지 않을 수도 있습니다.",
+      },
+      {
+        title: "6. 책임의 한계",
+        body: "Transfy는 있는 그대로 제공되며, 특정한 목적에 들어맞는다거나 오류가 없다는 점을 보증하지 않습니다. 법이 허용하는 범위에서, 이 서비스를 이용하는 과정에서 생긴 손해에 대해서는 책임을 지지 않습니다.",
+      },
+      {
+        title: "7. 약관의 변경",
+        body: "약관이 바뀌면 바뀐 내용과 최종 수정일을 이 화면에 함께 반영합니다. 변경된 뒤에도 서비스를 계속 이용하시면 바뀐 약관에 동의하신 것으로 봅니다.",
+      },
+    ],
+    contactTitle: "8. 문의와 오류 제보",
+    contactDesc:
+      "서비스를 이용하시다가 가사가 어긋나거나 번역이 이상하게 나오는 등 잘못된 점을 발견하셨다면, 아래 주소로 알려 주세요. 어떤 곡에서 어떤 문제가 있었는지 함께 적어 주시면 확인한 뒤에 고치겠습니다. 게시 중단 요청도 같은 주소로 보내 주시면 됩니다.",
     back: "← 홈으로 돌아가기",
   },
   en: {
     title: "Terms of Service",
-    introTitle: "1. Introduction",
-    introDesc: "Welcome to Transfy. By accessing our website, you agree to be bound by these Terms of Service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws.",
-    licenseTitle: "2. Use License",
-    licenseDesc: "Permission is granted to temporarily use Transfy for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title.",
-    disclaimerTitle: "3. Disclaimer",
-    disclaimerDesc: "The materials on Transfy's website are provided on an 'as is' basis. Transfy makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
-    contactTitle: "4. Contact and Bug Reports",
-    contactDesc: "If you notice anything wrong while using Transfy, such as mismatched lyrics or a strange translation, please let us know at the address below. Telling us which track was affected and what went wrong helps us look into it and fix it.",
+    updated: "Last updated: September 13, 2026",
+    intro:
+      "Transfy shows the lyrics of the song you are playing on Spotify and translates them as it plays. It is a free, non-commercial project built and run by one person for learning purposes. By using the service, you agree to the terms below.",
+    sections: [
+      {
+        title: "1. How You May Use Transfy",
+        body: "Anyone may use Transfy free of charge for personal listening. Please do not do any of the following:",
+        list: [
+          "Send bulk automated requests that interfere with the running of the service.",
+          "Redistribute the lyrics or translations shown here for commercial purposes.",
+          "Bypass or disrupt how this service, or the external services it relies on, are meant to work.",
+        ],
+      },
+      {
+        title: "2. Lyrics and Copyright",
+        body: "Lyrics come from LRCLIB, and all rights to the lyrics and the recordings belong to their authors and rights holders. Transfy neither owns nor sells lyrics; it only displays them alongside the song you are listening to. If you hold the rights to a song and would like it taken down, tell us and we will act on it once we have checked.",
+      },
+      {
+        title: "3. Accuracy of Translations",
+        body: "Translations are generated by machine translation, so they can differ from what the original lines mean. Lyrics rich in idioms or figurative language suffer the most. Always read the original lines alongside the translation before relying on it for study or quotation.",
+      },
+      {
+        title: "4. Relationship with Other Services",
+        body: "Transfy is not affiliated with, endorsed by, or sponsored by Spotify AB, Apple Inc., LRCLIB, or any other service. All names and trademarks belong to their respective owners, and signing in with Spotify works through the API that Spotify publishes.",
+      },
+      {
+        title: "5. Changes and Interruptions",
+        body: "Because one person runs this project, the service may change, or be suspended or shut down without advance notice. Lyrics and translation may also stop working when the external services it depends on change their policies or go down.",
+      },
+      {
+        title: "6. Disclaimer",
+        body: "Transfy is provided on an 'as is' basis, with no warranty that it fits a particular purpose or is free of errors. To the extent the law allows, we are not liable for damage arising from your use of the service.",
+      },
+      {
+        title: "7. Changes to These Terms",
+        body: "When these terms change, the new text and the date above are updated on this page. If you keep using the service after a change, you accept the updated terms.",
+      },
+    ],
+    contactTitle: "8. Contact and Bug Reports",
+    contactDesc:
+      "If you notice anything wrong while using Transfy, such as mismatched lyrics or a strange translation, please let us know at the address below. Telling us which track was affected and what went wrong helps us look into it and fix it. Takedown requests go to the same address.",
     back: "← Back to Home",
   },
-  // Add other languages as needed (fallback to en)
 };
 
 export default async function TermsPage() {
@@ -45,22 +127,26 @@ export default async function TermsPage() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold mb-8 text-center">{t.title}</h1>
-        
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t.introTitle}</h2>
-          <p className="text-zinc-400">{t.introDesc}</p>
-        </section>
+        <div className="space-y-2 text-center">
+          <h1 className="text-4xl font-bold">{t.title}</h1>
+          <p className="text-sm text-zinc-500">{t.updated}</p>
+        </div>
 
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t.licenseTitle}</h2>
-          <p className="text-zinc-400">{t.licenseDesc}</p>
-        </section>
+        <p className="text-zinc-400">{t.intro}</p>
 
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t.disclaimerTitle}</h2>
-          <p className="text-zinc-400">{t.disclaimerDesc}</p>
-        </section>
+        {t.sections.map((section) => (
+          <section key={section.title} className="space-y-4">
+            <h2 className="text-2xl font-semibold">{section.title}</h2>
+            <p className="text-zinc-400">{section.body}</p>
+            {section.list && (
+              <ul className="list-disc space-y-1.5 pl-5 text-zinc-400 marker:text-zinc-600">
+                {section.list.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">{t.contactTitle}</h2>
