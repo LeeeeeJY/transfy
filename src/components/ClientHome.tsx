@@ -3,7 +3,6 @@
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import LyricsView from "@/components/LyricsView";
-import { useSpotifyPoller } from "@/hooks/useSpotifyPoller";
 import { useLyricsFetcher } from "@/hooks/useLyricsFetcher";
 import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
@@ -354,7 +353,8 @@ export default function ClientHome({
   const uiLang = initialLang;
   const t = UI_TEXT[uiLang as keyof typeof UI_TEXT] || UI_TEXT.en;
 
-  useSpotifyPoller(); // Re-enabled for cross-device sync
+  // 재생 상태 폴링은 앱 전체에서 한 번만 돌아야 하므로 providers.tsx의
+  // GlobalHooks에서만 호출합니다. 여기서 또 부르면 진행 위치가 두 배로 빨라집니다.
   useLyricsFetcher(); // Fetch lyrics when track changes
 
   const { title, artist, isPlaying, trackId, provider } = usePlayerStore();

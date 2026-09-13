@@ -8,6 +8,12 @@ import { externalTrackKey, normalizeForMatch } from "@/lib/utils";
 const POLL_INTERVAL_MS = 3000;
 /** 진행 위치를 부드럽게 이어 주는 로컬 타이머 주기 */
 const PROGRESS_TICK_MS = 100;
+/**
+ * 폴링 결과가 지금 보고 있는 위치보다 이만큼 뒤라면, 실제로 되감긴 것이 아니라
+ * 응답 지연이나 스포티파이 쪽 측정 오차로 봅니다. 이 범위를 넘어서면 사용자가
+ * 직접 구간을 이동한 것으로 보고 그대로 반영합니다.
+ */
+const BACKWARD_TOLERANCE_MS = 2500;
 
 /**
  * 지금 재생 중인 곡이, 사용자가 직접 열어 둔(고정한) 곡과 같은 곡인지 판단합니다.
@@ -49,6 +55,19 @@ export function useSpotifyPoller() {
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * 폴링으로 확인한 진행 위치와 그것을 확인한 시각입니다.
+   *
+   * 로컬 타이머가 스토어 값에 흐른 시간을 더해 나가는 방식이면, 이 훅이 실수로
+   * 두 곳에서 실행될 때 진행 위치가 두 배로 빨라집니다. 기준점에서 매번 다시
+   * 계산하면 몇 번을 실행하든 같은 값이 나옵니다.
+   */
+  const progressAnchorRef = useRef<{
+    trackKey: string;
+    progressMs: number;
+    at: number;
+  } | null>(null);
 
   /**
    * 고정된 곡을 기다리는 동안 마지막으로 관찰한 재생 곡.
@@ -121,6 +140,26 @@ export function useSpotifyPoller() {
         ? data.progress_ms + Math.min(roundTripMs / 2, 1000)
         : data.progress_ms;
 
+      // 진행 위치는 뒤로 가지 않게 합니다.
+      //
+      // 폴링 응답은 몇백 밀리초 전의 값이라, 로컬 타이머가 앞서 있는 것이 정상입니다.
+      // 이를 그대로 덮어쓰면 3초마다 위치가 조금씩 되돌아가고, 그 순간이 가사 줄
+      // 경계와 겹치면 활성 줄이 앞뒤로 오가며 화면이 위아래로 튑니다.
+      const isSameTrack = current.trackId === playingKey;
+      const keepLocalProgress =
+        isSameTrack &&
+        data.is_playing &&
+        current.progressMs > measuredProgressMs &&
+        current.progressMs - measuredProgressMs < BACKWARD_TOLERANCE_MS;
+      const nextProgressMs = keepLocalProgress ? current.progressMs : measuredProgressMs;
+
+      // 다음 폴링까지 진행 위치를 계산할 기준점을 갱신합니다.
+      progressAnchorRef.current = {
+        trackKey: playingKey,
+        progressMs: nextProgressMs,
+        at: Date.now(),
+      };
+
       setPlayback({
         isPlaying: data.is_playing,
         trackId: playingKey,
@@ -128,9 +167,8 @@ export function useSpotifyPoller() {
         artist: playingArtists.join(", "),
         albumArt: data.item.album.images[0]?.url,
         duration: data.item.duration_ms / 1000, // Convert to seconds for store consistency
-        // 재생은 스포티파이 앱에서 이루어지므로, 서버가 알려 준 위치가 정확합니다.
-        progressMs: measuredProgressMs,
-        progress: measuredProgressMs / 1000,
+        progressMs: nextProgressMs,
+        progress: nextProgressMs / 1000,
         provider: "spotify",
         isPlayerVisible: true, // Always show player when data is available
       });
@@ -168,19 +206,18 @@ export function useSpotifyPoller() {
 
   // 2. 폴링 사이의 진행 위치를 로컬에서 이어 줍니다.
   useEffect(() => {
-    // 흐른 시간을 실제로 재서 더합니다. 고정값(+100ms)을 더하면 탭이 백그라운드로
-    // 내려가 타이머가 느려질 때 진행 위치가 뒤처져 가사 싱크가 어긋납니다.
-    let lastTick = Date.now();
-
     progressIntervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const elapsed = now - lastTick;
-      lastTick = now;
+      const anchor = progressAnchorRef.current;
+      if (!anchor) return;
 
       const current = usePlayerStore.getState();
-      if (current.isPlaying && current.provider === "spotify") {
-        updateProgress(current.progressMs + elapsed);
-      }
+      if (!current.isPlaying || current.provider !== "spotify") return;
+      // 곡이 바뀌었는데 아직 새 기준점을 받지 못했다면 계산하지 않습니다.
+      if (current.trackId !== anchor.trackKey) return;
+
+      // 기준점에서 흐른 시간을 매번 다시 재므로, 탭이 백그라운드로 내려가
+      // 타이머가 느려져도 진행 위치가 뒤처지지 않습니다.
+      updateProgress(anchor.progressMs + (Date.now() - anchor.at));
     }, PROGRESS_TICK_MS);
 
     return () => {
