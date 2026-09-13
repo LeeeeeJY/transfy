@@ -71,9 +71,26 @@ function findActiveLineIndex(lyrics: { time: number }[], progressMs: number): nu
 
 /** 사용자가 직접 스크롤한 뒤 자동 스크롤을 멈춰 두는 시간 */
 const MANUAL_SCROLL_PAUSE_MS = 4000;
-/** 활성 줄이 이 범위 안에 보이면 자동 스크롤을 하지 않습니다 (화면 높이 비율) */
-const COMFORT_ZONE_TOP = 0.2;
-const COMFORT_ZONE_BOTTOM = 0.75;
+/** 이 정도로 작은 차이까지 따라가면 스크롤이 미세하게 떨리므로 그냥 둡니다. */
+const CENTER_TOLERANCE_PX = 1;
+
+/**
+ * 가사가 실제로 보이는 영역의 세로 한가운데 위치를 화면 기준으로 구합니다.
+ *
+ * 화면 위에는 헤더(레이아웃의 유일한 header 요소)가, 아래에는 재생 바가 고정되어
+ * 있어서 화면 전체의 한가운데와 눈에 보이는 영역의 한가운데가 서로 다릅니다. 두 막대는
+ * 화면 너비에 따라 높이가 달라지고 재생 바는 곡 정보가 없으면 아예 사라지기 때문에,
+ * 높이를 코드에 적어 두지 않고 그때그때 재어서 씁니다.
+ */
+function getVisibleCenterY(): number {
+  const header = document.querySelector("header");
+  const player = document.querySelector("[data-bottom-player]");
+  const visibleTop = header ? header.getBoundingClientRect().bottom : 0;
+  const visibleBottom = player
+    ? player.getBoundingClientRect().top
+    : window.innerHeight;
+  return (visibleTop + visibleBottom) / 2;
+}
 
 /**
  * 이 곡을 스포티파이에서 바로 여는 버튼입니다.
@@ -240,7 +257,15 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
     };
   }, []);
 
-  // Auto scroll side effect
+  // 줄이 넘어갈 때마다 지금 재생 중인 줄을 화면 한가운데로 옮깁니다.
+  //
+  // 예전에는 활성 줄이 일정한 범위 안에 보이면 그대로 두었는데, 그렇게 하면 줄이
+  // 넘어갈수록 재생 중인 줄이 아래로 밀려 내려가다가 범위를 벗어나는 순간 한 번에
+  // 가운데로 튀어 올라왔습니다. 번역까지 켜면 줄 하나의 높이가 커져서 재생 중인 줄이
+  // 화면 맨 아래에 걸리는 일도 있었습니다. 이제는 줄이 바뀔 때마다 가운데로 맞춥니다.
+  //
+  // 번역이 도착하거나 번역 표시를 껐다 켜면 줄 높이가 달라지므로, 그때도 다시
+  // 맞추도록 lyrics와 showTranslation을 의존성에 넣었습니다.
   useEffect(() => {
     const element = activeLineRef.current;
     if (!element) return;
@@ -248,17 +273,15 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
     // 방금 직접 스크롤했다면 잠시 자동 스크롤을 멈춥니다.
     if (Date.now() - lastManualScrollAt.current < MANUAL_SCROLL_PAUSE_MS) return;
 
-    // 이미 읽기 좋은 위치에 있으면 굳이 움직이지 않습니다.
-    // 줄이 바뀔 때마다 무조건 스크롤하면 화면이 계속 흔들립니다.
     const rect = element.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const isComfortablyVisible =
-      rect.top >= viewportHeight * COMFORT_ZONE_TOP &&
-      rect.bottom <= viewportHeight * COMFORT_ZONE_BOTTOM;
-    if (isComfortablyVisible) return;
+    const lineCenter = rect.top + rect.height / 2;
+    const delta = lineCenter - getVisibleCenterY();
+    if (Math.abs(delta) < CENTER_TOLERANCE_PX) return;
 
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [activeIndex]); // Only run when activeIndex changes
+    // 부드러운 스크롤이 진행되는 중에도 현재 위치를 기준으로 목표 지점을 다시
+    // 계산하므로, 줄이 빠르게 넘어가도 위치가 어긋나지 않습니다.
+    window.scrollTo({ top: window.scrollY + delta, behavior: "smooth" });
+  }, [activeIndex, lyrics, showTranslation]);
 
   // Determine if we should show loading state for dummy tracks
   // urlTrackId is already declared above
@@ -532,7 +555,11 @@ export default function LyricsView({ initialUiLanguage }: LyricsViewProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-32">
+        {/*
+          아래 여백은 곡의 마지막 줄도 화면 한가운데까지 올라올 수 있게 남겨 둡니다.
+          여백이 짧으면 더 이상 스크롤되지 않아 마지막 줄들이 화면 아래쪽에 걸립니다.
+        */}
+        <div className="flex flex-col gap-6 max-w-2xl mx-auto pt-4 pb-[40vh]">
           {lyrics.map((line, index) => {
             const isActive = index === activeIndex;
             // 현재 줄이 정해졌을 때만 나머지를 흐리게 처리합니다.

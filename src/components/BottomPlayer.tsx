@@ -117,8 +117,13 @@ export default function BottomPlayer() {
   // 재생 위치가 없어서, 그대로 두면 0에 멈춘 막대만 남습니다.
   const isFollowingPlayback = provider === "spotify" && hasDuration;
 
+  // data-bottom-player는 가사 화면이 이 바에 가려지는 높이를 재는 데 씁니다.
+  // 그 높이를 빼야 재생 중인 줄을 실제로 보이는 영역의 한가운데에 놓을 수 있습니다.
   return (
-    <div className="safe-area-pb fixed inset-x-0 bottom-0 z-40 border-t border-zinc-800 bg-zinc-900/90 backdrop-blur-xl">
+    <div
+      data-bottom-player
+      className="safe-area-pb fixed inset-x-0 bottom-0 z-40 border-t border-zinc-800 bg-zinc-900/90 backdrop-blur-xl"
+    >
       {isFollowingPlayback && <ProgressHairline />}
 
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 md:h-[72px] md:gap-5 lg:px-8">
