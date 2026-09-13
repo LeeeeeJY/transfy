@@ -17,7 +17,7 @@ const PRIVACY_TEXT: Record<UiLanguage, PolicyCopy> = {
           "최근에 들은 곡, 자주 듣는 곡과 아티스트, 내 플레이리스트 목록 (홈 화면의 목록에 씁니다)",
         ],
         note:
-          "로그인할 때 발급받은 접근 토큰과 스포티파이가 알려 주는 기본 프로필(표시 이름, 이메일 주소, 프로필 사진 주소)은 암호화된 세션 쿠키에 담겨 이용자의 브라우저에만 보관됩니다. 프로필 정보는 화면에 보여 주거나 따로 활용하지 않습니다. 로그아웃하시면 이 쿠키가 지워지며, 스포티파이 계정 설정의 앱 관리 화면에서 Transfy의 접근 권한을 언제든지 회수하실 수 있습니다.",
+          "로그인할 때 발급받은 접근 토큰과 스포티파이가 알려 주는 기본 프로필(표시 이름, 프로필 사진 주소)은 암호화된 세션 쿠키에 담겨 이용자의 브라우저에만 보관됩니다. 프로필 정보는 화면에 보여 주거나 따로 활용하지 않습니다. 로그아웃하시면 이 쿠키가 지워지며, 스포티파이 계정 설정의 앱 관리 화면에서 Transfy의 접근 권한을 언제든지 회수하실 수 있습니다. Transfy는 위 정보를 읽는 데 필요한 권한만 요청하며, 재생을 제어하거나 보관함을 읽는 권한은 요청하지 않습니다.",
       },
       {
         title: "2. 외부 서비스로 전달되는 정보",
@@ -68,7 +68,7 @@ const PRIVACY_TEXT: Record<UiLanguage, PolicyCopy> = {
           "Your recently played tracks, top tracks and artists, and your playlists, which fill the lists on the home screen.",
         ],
         note:
-          "The access token issued at sign-in, together with the basic profile Spotify returns (display name, email address, profile image URL), is held in an encrypted session cookie in your browser only. The profile details are neither displayed nor used for anything else. Signing out clears the cookie, and you can revoke Transfy's access at any time from the apps section of your Spotify account settings.",
+          "The access token issued at sign-in, together with the basic profile Spotify returns (display name, profile image URL), is held in an encrypted session cookie in your browser only. The profile details are neither displayed nor used for anything else. Signing out clears the cookie, and you can revoke Transfy's access at any time from the apps section of your Spotify account settings. Transfy asks only for the permissions needed to read the items above, never for permission to control playback or read your library.",
       },
       {
         title: "2. What Is Sent to Other Services",
@@ -118,7 +118,7 @@ const PRIVACY_TEXT: Record<UiLanguage, PolicyCopy> = {
           "最近聴いた曲、よく聴く曲とアーティスト、プレイリストの一覧（ホーム画面の一覧に使用します）",
         ],
         note:
-          "ログイン時に発行されるアクセストークンと、Spotifyから提供される基本プロフィール（表示名、メールアドレス、プロフィール画像のURL）は、暗号化されたセッションクッキーとして利用者のブラウザにのみ保管されます。プロフィール情報を画面に表示したり、ほかの用途に使ったりすることはありません。ログアウトするとこのクッキーは削除され、Spotifyアカウント設定のアプリ管理画面からTransfyのアクセス権限をいつでも取り消せます。",
+          "ログイン時に発行されるアクセストークンと、Spotifyから提供される基本プロフィール（表示名、プロフィール画像のURL）は、暗号化されたセッションクッキーとして利用者のブラウザにのみ保管されます。プロフィール情報を画面に表示したり、ほかの用途に使ったりすることはありません。ログアウトするとこのクッキーは削除され、Spotifyアカウント設定のアプリ管理画面からTransfyのアクセス権限をいつでも取り消せます。Transfyは上記の情報を読み取るために必要な権限だけを要求し、再生の操作やライブラリの読み取りに関する権限は要求しません。",
       },
       {
         title: "2. 外部サービスへ送信される情報",
@@ -168,7 +168,7 @@ const PRIVACY_TEXT: Record<UiLanguage, PolicyCopy> = {
           "最近播放的歌曲、常听的歌曲与艺人、您的播放列表（用于首页的列表）",
         ],
         note:
-          "登录时获得的访问令牌，以及 Spotify 提供的基本资料（显示名称、电子邮件地址、头像地址），以加密的会话 Cookie 形式仅保存在您的浏览器中。这些资料不会显示在页面上，也不会用于其他用途。退出登录后该 Cookie 会被清除，您也可以随时在 Spotify 账户设置的应用管理页面收回 Transfy 的访问权限。",
+          "登录时获得的访问令牌，以及 Spotify 提供的基本资料（显示名称、头像地址），以加密的会话 Cookie 形式仅保存在您的浏览器中。这些资料不会显示在页面上，也不会用于其他用途。退出登录后该 Cookie 会被清除，您也可以随时在 Spotify 账户设置的应用管理页面收回 Transfy 的访问权限。Transfy 只申请读取上述信息所需的权限，不会申请控制播放或读取音乐库的权限。",
       },
       {
         title: "2. 发送到外部服务的信息",

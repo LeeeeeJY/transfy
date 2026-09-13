@@ -31,14 +31,6 @@ export interface Artist {
   uri: string;
 }
 
-export interface Album {
-  id: string;
-  name: string;
-  artist: string;
-  image: string;
-  uri: string;
-}
-
 export interface Playlist {
   id: string;
   name: string;
@@ -84,10 +76,6 @@ interface SpotifyPlaylist {
   owner: { display_name: string };
   images: SpotifyImage[];
   uri: string;
-}
-
-interface SpotifySavedAlbum {
-  album: SpotifyAlbum;
 }
 
 interface SpotifyPlayHistory {
@@ -444,33 +432,6 @@ export async function getTopChartsAction(lang: string = 'en', limit: number = 10
     console.error('iTunes RSS Error:', error);
     return [];
   }
-}
-
-export async function getUserSavedAlbumsAction(): Promise<Album[]> {
-  const session = await getServerSession(authOptions);
-
-  if (session?.accessToken) {
-    try {
-      const response = await axios.get('https://api.spotify.com/v1/me/albums', {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-        params: { limit: 10 }
-      });
-
-      return response.data.items.map((item: SpotifySavedAlbum) => ({
-        id: item.album.id,
-        name: item.album.name,
-        artist: item.album.artists.map((a) => a.name).join(', '),
-        image: item.album.images[0]?.url || '',
-        uri: item.album.uri
-      }));
-    } catch (error: unknown) {
-      const status = axios.isAxiosError(error) ? error.response?.status : null;
-      if (status === 401) console.warn('Spotify Saved Albums: token expired or invalid (401)');
-      else console.error('Spotify Saved Albums Error:', error);
-      return [];
-    }
-  }
-  return [];
 }
 
 export async function getUserPlaylistsAction(): Promise<Playlist[]> {

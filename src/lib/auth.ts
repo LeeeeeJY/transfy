@@ -1,18 +1,25 @@
 import { NextAuthOptions, TokenSet, User } from "next-auth";
 import SpotifyProvider from "next-auth/providers/spotify";
 
+/**
+ * 로그인할 때 요청하는 스포티파이 접근 권한.
+ *
+ * 동의 화면에는 여기 적은 권한이 그대로 나열되므로, 화면에서 실제로 읽는 정보에
+ * 필요한 것만 남깁니다. 쓰지 않는 권한을 남겨 두면 하지도 않는 일을 요구하는
+ * 셈이고, 토큰이 새어 나갔을 때 할 수 있는 일도 그만큼 넓어집니다.
+ * 권한을 추가하기 전에 그것을 쓰는 코드가 있는지 먼저 확인하세요.
+ *
+ * 재생 제어(user-modify-playback-state)와 웹 플레이어(streaming) 권한은 해당
+ * 기능을 걷어내면서 함께 제거했습니다. 이 서비스는 재생을 제어하지 않습니다.
+ * 프로필 권한(user-read-email, user-read-private)도 화면에서 프로필을 쓰지
+ * 않으므로 요청하지 않습니다.
+ */
 const SCOPES = [
-  "user-read-email",
-  "user-read-private",
-  "user-read-playback-state",
-  "user-read-currently-playing",
-  "user-modify-playback-state",
-  "user-read-recently-played",
-  "user-top-read",
-  "user-library-read",
-  "playlist-read-private",
-  "playlist-read-collaborative",
-  "streaming",
+  "user-read-currently-playing", // 재생 중인 곡: 가사를 맞추어 보여 주는 데 씁니다
+  "user-read-recently-played", // 홈 화면의 최근 들은 곡
+  "user-top-read", // 홈 화면의 자주 듣는 곡과 아티스트
+  "playlist-read-private", // 홈 화면의 내 플레이리스트
+  "playlist-read-collaborative", // 공동 편집 플레이리스트도 목록에 나오게 합니다
 ].join(" ");
 
 interface ExtendedToken extends TokenSet {
